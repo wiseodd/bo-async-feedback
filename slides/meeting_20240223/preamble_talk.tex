@@ -1,0 +1,409 @@
+%!TEX root = talk.tex
+
+% serif fonts for mathematics
+\usefonttheme{professionalfonts}
+
+\usepackage{textcase,marvosym,cancel,booktabs,colortbl,nicefrac,ifsym}
+\usepackage{fourier-orns}
+\usepackage{amsmath,graphicx,svg,tikz,pgfplots,colonequals,mathtools,subfig,wrapfig,standalone,scalefnt} % MnSymbol
+\usepackage{booktabs,multirow,multicol}
+\usepackage{pifont} % for the dingbats in the line search plots
+% \usepackage{stix} % for \sumint
+% \usepackage{newtxsf}
+% \usepackage{arev}
+\usepackage{transparent}
+
+
+\usepackage{multido}
+
+
+%% not used with xetex
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+
+% a few colours, for general use.
+\definecolor{lred}{RGB}{200,0,0}
+\definecolor{dred}{RGB}{130,0,0}
+\definecolor{dblu}{RGB}{0,0,130}
+\definecolor{dgre}{RGB}{0,130,0}
+\definecolor{dgra}{RGB}{50,50,50}
+\definecolor{mgra}{RGB}{221,222,214}
+\definecolor{lgra}{RGB}{238,238,234}
+\definecolor{MPG}{RGB}{000,125,122}
+\definecolor{lMPG}{RGB}{000,190,189}
+\definecolor{ora}{HTML}{FF9933} %EI orange
+\definecolor{lblu}{HTML}{7DA7D9}%PS blue
+
+% Color scheme of the Vector Institute
+\definecolor{Vblue}{RGB}{9,41,74}
+\definecolor{Vmagenta}{RGB}{235,0,140}
+
+\definecolor{ERC_ora}{RGB}{233,93,15}
+
+\setlength{\parindent}{0pt}
+
+\newcommand{\blu}[1]{{\color{dblu} #1}}   % highlight command 1
+\newcommand{\ora}[1]{{\color{ora} #1}}   % highlight command 1
+\newcommand{\gra}[1]{{\color{mgra} #1}}   % highlight command 1
+\setbeamercolor{alerted text}{fg = Vmagenta} % highlight command 2
+
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{structure}{fg=Vblue}
+
+\setbeamercolor{item projected}{use=item,fg=black,bg = Vblue}
+
+\setbeamercolor*{palette primary}{fg=white,bg=Vblue}
+\setbeamercolor*{palette secondary}{parent=palette primary,use=palette
+primary,bg=dblu}
+\setbeamercolor*{palette tertiary}{parent=palette
+primary,use=palette primary,fg=white,bg=dgre}
+\setbeamercolor*{palette
+quaternary}{parent=palette primary,use=palette primary,bg=dgre}
+
+\setbeamercolor*{block body}{bg=Vblue!15!white, fg=black}
+\setbeamercolor*{block title}{parent=structure, bg=Vblue, fg=white}
+\setbeamercolor{block body alerted}{bg=Gray,fg=Vblue}
+\setbeamercolor{block title example}{fg=Vblue,bg=white}
+\setbeamercolor{block body example}{fg=black,bg=white}
+
+\setbeamercolor{frametitle}{bg=white,fg=Vblue}
+\setbeamercolor{frametitle right}{bg=Vblue}
+\setbeamercolor{framesubtitle}{fg=Vmagenta}
+
+\setbeamerfont{framesubtitle}{size*={9}{12}}
+
+\setbeamercolor{title}{fg=Vblue}
+\setbeamercolor{subtitle}{fg=black}
+\setbeamercolor{author}{fg=Black}
+\setbeamercolor{date}{fg=Black}
+
+\setbeamercolor*{titlelike}{parent=structure}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{bibliography item}[triangle]
+
+\setbeamerfont{frametitle}{}
+
+% %%%% REDEFINE \emph to COLORS.
+
+\setbeamertemplate{footline}{\hfill\color{Black}{\insertframenumber}\hspace{2ex}\null\newline\vspace{2mm}}
+
+\arrayrulecolor{Black}
+
+\newcommand{\filltotal}{\hspace{0pt plus 1 filll}}
+
+\newcommand{\titlemark}[1]{
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[draw=none,text=Gray,anchor=north east,yshift=-.8259cm] at (current
+    page.north east) {\footnotesize{#1}};
+  \end{tikzpicture}
+}
+
+\AtBeginEnvironment{figure}{\setcounter{subfigure}{0}}
+\AtBeginEnvironment{frame}{\setcounter{footnote}{0}}
+
+\let\oldfootnotesize\footnotesize
+\renewcommand*{\footnotesize}{\oldfootnotesize\fontsize{7pt}{8pt}\selectfont}
+\renewcommand\footnoterule{}
+
+\newcommand{\graybox}[1]{
+  \tikzexternaldisable%
+  \begin{center}%
+    \tikz{\node[fill=Black,text width=\textwidth]{%
+        \begin{minipage}{1.0\linewidth}%
+        \color{white}
+          \begin{center}%
+            #1
+          \end{center}%
+        \end{minipage}};}%
+  \end{center}%
+  \tikzexternalenable
+}
+
+\newcommand{\divider}{\noindent\makebox[\linewidth]{\rule{\paperwidth}{.4pt}}  }
+
+\newcommand{\paperwhite}{\includegraphics[height=.6\baselineskip]{../text-document_white.png}\hspace{.5em}}
+\newcommand{\paperblack}{\includegraphics[height=.6\baselineskip]{../text-document.png}\hspace{.5em}}
+
+\newcommand{\bookwhite}{\includegraphics[height=.6\baselineskip]{../book-white.png}\hspace{.5em}}
+\newcommand{\bookblack}{\includegraphics[height=.6\baselineskip]{../book-black.png}\hspace{.5em}}
+
+\setbeamercolor{ribboncolor}{fg=black,bg=Yellow!40}
+\newcommand{\ribbon}[1]{
+    \begin{beamercolorbox}[wd=\paperwidth,colsep*=.3em,center]{ribboncolor}
+    \setbeamertemplate{itemize items}{\color{black}\starredbullet}
+    \setbeamercolor{structure}{fg=white}
+    \begin{minipage}{1.0\textwidth}%
+            #1
+        \end{minipage}
+    \end{beamercolorbox}
+}
+\setbeamercolor{whiteribboncolor}{fg=black,bg=white}
+\newcommand{\whiteribbon}[1]{
+    \begin{beamercolorbox}[wd=\paperwidth,colsep*=.5em,center,text width=\textwidth]{whiteribboncolor}
+    \setbeamertemplate{itemize items}{\color{black}\starredbullet}
+    \setbeamercolor{structure}{fg=black}
+    \begin{minipage}{\textwidth}%
+            #1
+        \end{minipage}
+    \end{beamercolorbox}
+}
+
+\newcommand{\bfa}[1]{
+  \begin{beamercolorbox}[wd=\paperwidth,colsep*=.5em,center]{white}
+    \setbeamertemplate{itemize items}{\color{black}\starredbullet}
+    \tikzexternaldisable
+    \begin{tikzpicture}
+    \node[signal,minimum width=\paperwidth,draw=Yellow,fill=Yellow,text=black,text width=\textwidth]{
+    \begin{minipage}{\textwidth}%
+            #1
+        \end{minipage}};
+    \end{tikzpicture}
+    \tikzexternalenable
+    \end{beamercolorbox}
+}
+
+\newcommand{\bfi}[1]{
+  \begin{beamercolorbox}[wd=\paperwidth,colsep*=.5em,center,text width=\textwidth]{white}
+    \setbeamertemplate{itemize items}{\color{black}\starredbullet}
+    \tikzexternaldisable
+    \begin{tikzpicture}
+    \node[signal,signal from=west,signal to=nowhere,minimum width=\linewidth,draw=Yellow,fill=Yellow,text=black,signal pointer angle=140]{
+    \begin{minipage}{\textwidth}%
+            #1
+        \end{minipage}};
+    \end{tikzpicture}\hspace{2.5mm}
+    \tikzexternalenable
+    \end{beamercolorbox}
+}
+
+\newcommand{\blackslide}{
+{\setbeamercolor{background canvas}{bg=black}
+  \begin{frame}[plain]
+    \null
+  \end{frame}
+}}
+
+
+\newcommand{\blackslidetext}[1]{
+  {
+    \setbeamercolor{frametitle}{bg=Vblue,fg=white}
+    \setbeamercolor{background canvas}{bg=Vblue}%
+    \setbeamercolor{structure}{fg=white}%
+    \setbeamercolor{normal text}{fg=white}%
+    \setbeamercolor{body}{fg=white}%
+    \setbeamertemplate{itemize items}{\color{white}\starredbullet}%
+    \begin{frame}
+      \color{white} #1
+    \end{frame}
+  }
+}
+
+% logo in the upper right corner
+\usepackage{eso-pic}
+\newcommand\AtPagemyUpperLeft[1]{\AtPageLowerLeft{%
+\put(\LenToUnit{0.83\paperwidth},\LenToUnit{0.9\paperheight}){#1}}}
+
+%%%%%%%% TiKZ %%%%%%%%
+\usetikzlibrary{arrows,shapes,plotmarks,decorations.pathmorphing}
+\usetikzlibrary{backgrounds,calc,positioning,fadings}
+
+\tikzset{>=stealth'}
+\tikzstyle{graphnode} =
+   [circle,draw=black,minimum size=22pt,text centered,text
+     width=22pt,inner sep=0pt]
+\tikzstyle{var}   =[graphnode,fill=white]
+\tikzstyle{obs}   =[graphnode,fill=black,text=white]
+\tikzstyle{act}   =[rectangle,draw=black,text=white,minimum
+size=22pt,text centered, text width=22pt,inner sep=0pt]
+\tikzstyle{fac}   =[rectangle,draw=black,fill=black!25,minimum size=5pt]
+\tikzstyle{facprior} =[rectangle,draw=black,fill=black,text=white,minimum size=5pt]
+\tikzstyle{edge}  =[draw=white,double=black,thick,-]
+\tikzstyle{prior} =[rectangle, draw=black, fill=black, minimum size=
+5pt, inner sep=0pt]
+\tikzstyle{dirprior} = [circle, draw=black, fill=black, minimum
+size=5pt, inner sep=0pt]
+
+\tikzfading[name=fade top,bottom color=transparent!0,top color=transparent!75]
+
+% to avoid warnings, copy only two symbols from stmaryrd
+\DeclareSymbolFont{stmry}{U}{stmry}{m}{n}
+\DeclareMathSymbol\leftarrowtriangle\mathrel{stmry}{"5E}
+\DeclareMathSymbol\rightarrowtriangle\mathrel{stmry}{"5F}
+\DeclareMathSymbol\sslash\mathrel{stmry}{"0C}
+\DeclareMathSymbol\obar\mathrel{stmry}{"3A}
+\DeclareMathSymbol\otimes\mathrel{stmry}{"0F}
+\DeclareMathSymbol\ominus\mathrel{stmry}{"17}
+\DeclareMathSymbol\minuso\mathrel{stmry}{"0A}
+\renewcommand{\gets}{\operatorname*{\leftarrowtriangle}}
+\renewcommand{\to}{\operatorname*{\rightarrowtriangle}}
+
+\usetikzlibrary{arrows,shapes,plotmarks,pgfplots.colormaps}
+\usetikzlibrary{pgfplots.groupplots}
+\pgfplotsset{compat=newest}
+\pgfplotsset{
+  every axis legend/.append style =
+    {
+      cells = { anchor = east },
+      draw  = none
+    },
+}
+\makeatletter
+\pgfplotsset{
+    range frame/.style={
+        tick align = outside,
+        axis line style={opacity=0},
+        after end axis/.code={
+            \draw ({rel axis cs:0,0}-|{axis cs:\pgfplots@data@xmin,0}) -- ({rel axis cs:0,0}-|{axis cs:\pgfplots@data@xmax,0});
+            \draw ({rel axis cs:0,0}|-{axis cs:0,\pgfplots@data@ymin}) -- ({rel axis cs:0,0}|-{axis cs:0,\pgfplots@data@ymax});
+        }
+    }
+}
+\makeatother
+
+\pgfkeys{/pgfplots/mystyle/.style={
+  % semithick,
+  % tick style={major tick length=4pt,semithick,gray},
+  xtick align = inside,
+  ytick align = inside
+  }}
+
+\pgfkeys{/pgfplots/mytuftestyle/.style={
+  semithick,
+  tick style={major tick length=4pt,semithick,black},
+  separate axis lines,
+  axis x line*=bottom,
+  axis x line shift=5pt,
+  xlabel shift=0pt,
+  axis y line*=left,
+  tick align = outside,
+  axis y line shift=5pt,
+  ylabel shift=0pt}}
+
+
+%%%% THEOREM environments
+% \newtheorem{defi}{Definition}[section]
+% \newtheorem{theo}[defi]{Theorem}
+% \newtheorem{cor}[defi]{Corollary}
+% \newtheorem{lemm}[defi]{Lemma}
+% \newtheorem{prob}[defi]{Problem}
+
+\newtheorem{proposition}{Proposition}[section]
+% \newtheorem{lemma}[proposition]{Lemma}
+% \newtheorem{theorem}[proposition]{Theorem}
+% \newtheorem{corollary}[proposition]{Corollary}
+
+\newlength{\figureheight}
+\newlength{\figurewidth}
+\newlength{\figheight}
+\newlength{\figwidth}
+
+% algorithms
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algrenewcommand{\algorithmiccomment}[1]{\hfill {$\sslash$ \scriptsize #1}}
+\algrenewcommand\alglinenumber[1]{\tiny #1}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+% \algrenewcomment[1]{\hfill {\color{OliveGreen!75} \(\triangleright\) #1}}
+% \algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
+
+
+% %%%%%% adding vertical bars to algorithmicx. Based on a response at
+% % http://tex.stackexchange.com/questions/52473/is-it-possible-to-have-connecting-loop-lines-like-algorithm2e-in-algorithmic/52778#52778
+\makeatletter
+% This is the vertical rule that is inserted
+\def\therule{\makebox[\algorithmicindent][l]{\hspace*{.5em}\vrule height .75\baselineskip depth .25\baselineskip}}%
+
+\newtoks\therules% Contains rules
+\therules={}% Start with empty token list
+\def\appendto#1#2{\expandafter#1\expandafter{\the#1#2}}% Append to token list
+\def\gobblefirst#1{% Remove (first) from token list
+  #1\expandafter\expandafter\expandafter{\expandafter\@gobble\the#1}}%
+\def\LState{\State\unskip\the\therules}% New line-state
+\def\pushindent{\appendto\therules\therule}%
+\def\popindent{\gobblefirst\therules}%
+\def\printindent{\unskip\the\therules}%
+\def\printandpush{\printindent\pushindent}%
+\def\popandprint{\popindent\printindent}%
+
+%      ***      DECLARED LOOPS      ***
+% (from algpseudocode.sty)
+\algdef{SE}[WHILE]{While}{EndWhile}[1]
+  {\printandpush\algorithmicwhile\ #1\ \algorithmicdo}
+  {\popandprint\algorithmicend\ \algorithmicwhile}%
+\algdef{SE}[FOR]{For}{EndFor}[1]
+  {\printandpush\algorithmicfor\ #1\ \algorithmicdo}
+  {\popandprint\algorithmicend\ \algorithmicfor}%
+\algdef{S}[FOR]{ForAll}[1]
+  {\printindent\algorithmicforall\ #1\ \algorithmicdo}%
+\algdef{SE}[LOOP]{Loop}{EndLoop}
+  {\printandpush\algorithmicloop}
+  {\popandprint\algorithmicend\ \algorithmicloop}%
+\algdef{SE}[REPEAT]{Repeat}{Until}
+  {\printandpush\algorithmicrepeat}[1]
+  {\popandprint\algorithmicuntil\ #1}%
+\algdef{SE}[IF]{If}{EndIf}[1]
+  {\printandpush\algorithmicif\ #1\ \algorithmicthen}
+  {\popandprint\algorithmicend\ \algorithmicif}%
+\algdef{C}[IF]{IF}{ElsIf}[1]
+  {\popandprint\pushindent\algorithmicelse\ \algorithmicif\ #1\ \algorithmicthen}%
+\algdef{Ce}[ELSE]{IF}{Else}{EndIf}
+  {\popandprint\pushindent\algorithmicelse}%
+\algdef{SE}[PROCEDURE]{Procedure}{EndProcedure}[2]
+   {\printandpush\algorithmicprocedure\ \textproc{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}%
+   {\popandprint\algorithmicend\ \algorithmicprocedure}%
+\algdef{SE}[FUNCTION]{Function}{EndFunction}[2]
+   {\printandpush\algorithmicfunction\ \textproc{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}%
+   {\popandprint\algorithmicend\ \algorithmicfunction}%
+\makeatother
+
+%%%% fiddling with lists:
+% \usepackage{enumitem}
+% try: \begin{description}[leftmargin=\parindent,labelindent=\parindent] ...
+
+%%%% FONTS
+
+% Monospaced
+\usepackage{inconsolata}
+% \usepackage[default]{lato}
+
+% Vector's Karbon font
+% \usepackage[T1]{fontenc}
+% \setmainfont[Ligatures=TeX]{Karbon}
+
+% special \vneq that works with sfmath
+\makeatletter
+\newcommand*{\vneq}{%
+  \mathrel{%
+    \mathpalette\@vneq{=}%
+  }%
+}
+\newcommand*{\@vneq}[2]{%
+  % #1: math style (\displaystyle, \textstyle, ...)
+  % #2: symbol (=, ...)
+  \sbox0{\raisebox{\depth}{$#1\neq$}}%
+  \sbox2{\raisebox{\depth}{$#1|\m@th$}}%
+  \ifdim\ht2>\ht0 %
+    \sbox2{\resizebox{\vneqxscale\width}{\vneqyscale\ht0}{\unhbox2}}%
+  \fi
+  \sbox2{$\m@th#1\vcenter{\copy2}$}%
+  \ooalign{%
+    \hfil\phantom{\copy2}\hfil\cr
+    \hfil$#1#2\m@th$\hfil\cr
+    \hfil\copy2\hfil\cr
+  }%
+}
+\newcommand*{\vneqxscale}{1}
+\newcommand*{\vneqyscale}{.8}
+\makeatother
+
+\renewcommand{\to}{\rightarrow}
+
+
+% \usepackage{palatino}
+% \usepackage{mathpazo}
+
+
+\let\OLDitemize\itemize
+\renewcommand\itemize{\OLDitemize\addtolength{\itemsep}{0.25em}}

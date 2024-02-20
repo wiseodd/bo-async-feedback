@@ -1,0 +1,312 @@
+% !TEX options=--shell-escape
+
+% \documentclass[11pt,usepdftitle=false,aspectratio=169,usenames,dvipsnames]{beamer}
+\documentclass[11pt,usepdftitle=false,aspectratio=169,usenames,dvipsnames,handout]{beamer}
+
+% \usepackage{etex}
+% \makeatletter
+% \let\alloc@latex\alloc@
+% \def\alloc@#1#2#3#4{\newcount}% the current \newcount doesn't use \alloc@
+% \makeatother
+
+\setlength{\fboxsep}{0pt}
+
+% \usepackage[subscriptcorrection,slantedGreek,nofontinfo,mtpcal,mtpfrak,mtphrb]{mtpro2}
+\input{preamble_talk}
+\input{math_commands}
+
+\usepackage{soul}
+\usepackage{layouts}
+% \usepackage{animate}
+\usepackage{filecontents}
+
+\makeatletter
+\newcommand\thefontsize{The current font size is: \f@size pt}
+\makeatother
+
+\usepackage{tikz}
+\usetikzlibrary{fit}
+\usetikzlibrary{positioning}
+\usetikzlibrary{calc}
+\usetikzlibrary{cd}
+\tikzcdset{
+    arrow style=tikz,
+    diagrams={>={Straight Barb}}
+}
+
+\usetikzlibrary{external}
+\tikzexternalize[prefix=tikz/, figure name=output-figure]
+\tikzset{external/force remake=false}
+\tikzset{external/mode=list and make}
+
+\newcommand*\circled[2]{\tikz[baseline=(char.base)]{\node[shape=circle,draw, #1] (char) {#2};}}
+
+\makeatletter
+\let\@@magyar@captionfix\relax
+\makeatother
+
+\usepackage[newfloat,cache=false]{minted}
+\setminted[python]{
+  mathescape,
+  linenos=true,
+  numbersep=5pt,
+  % frame=lines,
+  framesep=2mm,
+  fontsize=\scriptsize,
+  highlightcolor=Yellow!30
+}
+
+
+\graphicspath{{figs/}}
+
+% PLOT COLORS
+%%%%%%%
+%% Color scheme
+\definecolor{color1}{RGB}{23,108,155}
+\definecolor{color2}{RGB}{194,135,32}
+\definecolor{color3}{RGB}{21,138,106}
+\definecolor{color4}{RGB}{212,95,30}
+
+%% Axis colors
+\definecolor{darkgray176}{RGB}{176,176,176}
+\definecolor{darkslategray66}{RGB}{66,66,66}
+%%%%%%%
+% END PLOT COLORS
+
+\usepackage{soul}
+\usepackage{layouts}
+\usepackage{colortbl}
+\colorlet{tablegray}{Yellow!30}
+
+\begin{document}
+
+% \tikzexternaldisable
+\begin{frame}
+  %%% Top-Right logo
+  % \ClearShipoutPictureFG
+  % \AddToShipoutPictureFG*{
+  %   \AtPageLowerLeft{%
+  %     \put(\LenToUnit{0.86\paperwidth},\LenToUnit{0.78\paperheight}){
+  %       \includegraphics[width=2.5cm,keepaspectratio]{assets/BMBF_gefoerdert_2017_en.pdf}
+  %     }
+  %   }
+  % }
+
+  \vspace{3em}
+  \title{\LARGE \bf Bayesian Optimization With Asynchronous Expert Feedback}
+  \author{\color{Vmagenta} Agustinus Kristiadi}
+  \date{}
+
+  % \vspace{-1.5cm}
+  \maketitle
+  % \vspace{-1.0cm}
+
+  % {
+  %   \centering
+
+  %   \includegraphics[width=0.25\textwidth]{assets/vector_horizontal}
+
+  %   \par
+  % }
+
+  \begin{columns}
+    \column{.25\textwidth}
+    \centering
+    \includegraphics[width=0.8\textwidth]{assets/vector_horizontal}
+
+    % \column{0.25\textwidth}
+    % \centering
+    % \includegraphics[width=0.8\textwidth]{assets/UT_WBMW_Rot_RGB.pdf}
+
+    % \column{.25\textwidth}
+    % \centering
+    % \includegraphics[width=0.8\textwidth]{assets/imprs-is-logo.pdf}
+
+    % \column{.25\textwidth}
+    % \centering
+    % \parbox[c]{.2\textwidth}{\centering\includegraphics[height=1cm]{assets/ERC.png}}
+    % \enspace
+    % \parbox{.6\textwidth}{\fontsize{4pt}{5pt}\selectfont \color{ERC_ora} some of the presented work is supported by the European Research Council}
+  \end{columns}
+
+  \thispagestyle{empty}
+  \setcounter{framenumber}{0}
+\end{frame}
+% \tikzexternalenable
+
+\setlength{\figwidth}{.9\textwidth}
+\setlength{\figheight}{.6\textheight}
+
+\renewcommand{\figurename}{}
+
+
+
+\begin{frame}
+  \frametitle{Motivation}
+
+  \begin{itemize}
+    \item<+-> Bayesian optimization \(\max_{x \in \X} f(x)\)
+    %
+    \item<+-> Human experts might have good ``prior'' over the problem:
+    \begin{itemize}
+      \item In material discovery, chemists have ``chemical intuition'' on whether a molecule \(x\) is preferred.
+      \item Even though \(x\) achieves high \(f(x)\), it might not be preferable, e.g. because it's hard synthesize or problematic in terms of regulation or just doesn't feel right
+    \end{itemize}
+    %
+    \item<+-> But this ``expert intuition'' is very vague. How to incorporate it into BO?
+    \begin{itemize}
+      \item How do we even define the prior distribution?
+      \item How do we even write down the constraint functions?
+      \item How do we even create a supervised learning dataset?
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Desiderata}
+
+  \begin{itemize}
+    \item<+-> Expert feedback asynchronously collected throughout the BO loop
+    \begin{itemize}
+      \item Asynchronous \(\implies\) non-blocking to the BO campaign; user-friendly for experts
+    \end{itemize}
+    %
+    \item<+-> Modularly built on top of standard BO
+    \begin{itemize}
+      \item The expert-feedback component should not interfere the BO loop
+      \item No feedback given \(\implies\) revert back to the standard BO
+    \end{itemize}
+    %
+    \item<+-> The feedback is used to steer the BO's exploration-exploitation
+    \begin{itemize}
+      \item With a tuneable discount factor
+      \item In one limit, we have the standard BO. In other limit, we have preferential BO (Gonzalez et al., ICML 2017)
+    \end{itemize}
+    %
+    \item<+-> Anything else?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Current Idea}
+
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \onslide<1->{
+        \begin{algorithm}[H]
+          \footnotesize
+
+          \caption{
+            BO Thread
+          }
+
+          \begin{algorithmic}
+            \Require Initial dataset \(\D_1 = \{ (x_i, f(x_i)) \}_{i}\), surrogate \(g\), {\color{Red} feedback-aware acqf.\ \(\alpha\)}
+            \For {\(t = 1, \dots, T\)}      %
+              \State Infer \(p(g_t \mid \D_t)\)
+              \State \(x_\text{next} = \argmax_{x \in \X} {\color{Red}\alpha}(p(g_t(x) \mid \D_t), {\color{Red} p(r \mid \D_t^\text{feedback})})\)
+              \State Compute \(f(x_\text{next})\)
+              \State \(\D_{t+1} = \D_t \cup \{(x_\text{next}, f(x_\text{next}))\}\)
+            \EndFor
+            \State \Return \(\argmax_{x, f(x) \in \D_{T+1}} f(x)\)
+          \end{algorithmic}
+        \end{algorithm}
+      }
+
+      \vfill
+    \end{column}
+    %
+    \begin{column}{0.5\textwidth}
+      \onslide<2->{
+        \begin{algorithm}[H]
+          \footnotesize
+
+          \caption{
+            Expert Feedback Thread
+          }
+
+          \begin{algorithmic}
+            \Require Active-learning style acqf.\ \(\alpha_\text{feedback}\), Bayesian Bradley-Terry model \(r(x, f(x))\)
+            \For {\(t = 1, \dots, T\)}      %
+              \State Get \(\D_t\) from the BO thread
+              \State \(\D_t^\text{feedback} = \{\}\)
+              \For {\(k = 1, \dots, K\)}
+                \State Pick \((x_{k1}, f(x_{k1}))\) vs.\ \((x_{k2}, f(x_{k2}))\) via \(\alpha_\text{feedback}\)
+                \State \(\D_t^\text{feedback} = \D_t^\text{feedback} \cup \text{the above}\)
+              \EndFor
+              \State Present \(\D_t^\text{feedback}\) on a web interface
+              \State For some \(k\), the expert pick \(\ell_k \in \{1, 2\}\)
+              \State Add \(\ell_k\) to \(\D_t^\text{feedback}\)
+              \State Infer \({\color{Red} p(r \mid \D_t^\text{feedback})}\)
+            \EndFor
+          \end{algorithmic}
+        \end{algorithm}
+      }
+
+      \vfill
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Current Idea}
+
+  \textbf{Open questions:}
+  \begin{itemize}
+    \item<+-> What is \(\alpha_\text{feedback}\)?
+    \item<+-> What is \(\alpha(p(g_t(x) \mid \D_t), p(r \mid \D_t^\text{feedback}))\)?
+    \item<+-> How to simulate expert feedback for benchmarking?
+    \item<+-> What are good chemistry datasets to use?
+    \item<+-> Know somebody who can help with the web interface?
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Previous Work}
+
+  \onslide<1->{
+    \textbf{BO:}
+    \begin{itemize}
+      \item Huang et al., MFPL Workshop @ ICML 23
+      \begin{itemize}
+        \item Train a reward model through expert preferences. Then use it as a feature extractor in the BO.
+      \end{itemize}
+      %
+      \item Tiihonen et al., AI4Mat Workshop @ NeurIPS 23
+      \begin{itemize}
+        \item Ask human feedback whether a novel \(x\) is good or bad (binary classification).
+      \end{itemize}
+    \end{itemize}
+  }
+
+  \onslide<2->{
+    \textbf{RL:}
+    \begin{itemize}
+      \item Balsells et al., CoRL 23
+      \begin{itemize}
+        \item Occassionally ask non-expert humans which trajectories are closer to the goal. This is asynchronous to the human-informed policy learning.
+      \end{itemize}
+      %
+      \item Torne et al., 23
+      \begin{itemize}
+        \item Similar as above.
+      \end{itemize}
+    \end{itemize}
+  }
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Timeline}
+
+  \begin{itemize}
+    \item Submit an extended abstract to AABI 24 (March 29)
+    \item Submit the full paper at NeurIPS (late May)
+    \item Biweekly meeting on Friday 10 AM EST?
+  \end{itemize}
+\end{frame}
+
+\end{document}
