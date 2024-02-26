@@ -11,6 +11,7 @@ from laplace_bayesopt.botorch import LaplaceBoTorch
 from laplace_bayesopt.acqf import TSAcquisitionFunction
 
 import toy_problems
+import utils
 
 import argparse, os
 
@@ -29,14 +30,7 @@ true_f = problem.get_function()
 bounds = problem.bounds
 
 # Initialize training data by uniform sampling within the bounds
-def sample_x(num_points):
-    samples = torch.cat([
-        dists.Uniform(*bounds.T[i]).sample((num_points, 1))
-        for i in range(bounds.shape[1])  # for each dimension
-    ], dim=1)
-    return samples
-
-train_x = sample_x(20)
+train_x = utils.sample_x(20, bounds)
 train_y = true_f(train_x).reshape(-1, 1)
 
 def get_net():
