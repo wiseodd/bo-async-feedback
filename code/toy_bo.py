@@ -24,8 +24,9 @@ args = parser.parse_args()
 np.random.seed(args.randseed)
 torch.manual_seed(args.randseed)
 
-true_f = toy_problems.FUNCS[args.problem]
-bounds = toy_problems.BOUNDS[args.problem]
+problem = toy_problems.PROBLEM_LIST[args.problem]()
+true_f = problem.get_function()
+bounds = problem.bounds
 
 # Initialize training data by uniform sampling within the bounds
 def sample_x(num_points):
@@ -40,7 +41,7 @@ train_y = true_f(train_x).reshape(-1, 1)
 
 def get_net():
     return torch.nn.Sequential(
-        nn.Linear(toy_problems.DIMS[args.problem], 50),
+        nn.Linear(problem.dim, 50),
         nn.ReLU(),
         nn.Linear(50, 50),
         nn.ReLU(),
@@ -58,7 +59,7 @@ pbar.set_description(
 
 # BO Loop
 for i in pbar:
-    acqf = TSAcquisitionFunction(model, maximize=toy_problems.IS_MAXIMIZE[args.problem])
+    acqf = TSAcquisitionFunction(model, maximize=problem.is_maximize)
     new_x, _ = optimize_acqf(acqf, bounds=bounds, q=1, num_restarts=10, raw_samples=20)
 
     if len(new_x.shape) == 1:
@@ -71,7 +72,7 @@ for i in pbar:
     model = model.condition_on_observations(new_x, new_y)
 
     # Update the current best y
-    best_cand_y = new_y.max().item() if toy_problems.IS_MAXIMIZE[args.problem] else new_y.min().item()
+    best_cand_y = new_y.max().item() if problem.is_maximize else new_y.min().item()
     if best_cand_y <= best_y:
         best_y = best_cand_y
 
