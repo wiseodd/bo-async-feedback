@@ -6,20 +6,23 @@ import torch.utils.data as data_utils
 import tqdm
 import itertools
 from transformers import get_scheduler
+from torchmetrics import Accuracy
 
 import toy_problems
 import utils
 
-import argparse
+import argparse, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley10', 'hartmann6', 'rastrigin10'])
-parser.add_argument('--train_size', type=int, default=1000)
-parser.add_argument('--val_size', type=int, default=500)
+parser.add_argument('--train_size', type=int, default=5000)
+parser.add_argument('--val_size', type=int, default=1000)
 parser.add_argument('--n_epochs', type=int, default=100)
 parser.add_argument('--randseed', type=int, default=9999)
 args = parser.parse_args()
 
+np.random.seed(args.randseed)
+torch.manual_seed(args.randseed)
 
 class RewardModel(nn.Module):
 
@@ -54,11 +57,10 @@ class RewardModel(nn.Module):
         else:  # data is torch.Tensor
             return self.net(data)  # (batch_size, 1)
 
-
 problem = toy_problems.PROBLEM_LIST[args.problem]()
 f_true = problem.get_function()
 
-x_samples = utils.sample_x(5000, problem.bounds)
+x_samples = utils.sample_x(args.train_size + args.val_size, problem.bounds)
 fx_samples = f_true(x_samples)
 
 # Randomly sample pairs
@@ -105,8 +107,9 @@ scd = get_scheduler(
     num_warmup_steps=0,
     num_training_steps=args.n_epochs*len(train_loader),
 )
+pbar = tqdm.trange(args.n_epochs)
 
-for it in range(args.n_epochs):
+for it in pbar:
     for data in train_loader:
         model.train()
         opt.zero_grad()
@@ -120,14 +123,27 @@ for it in range(args.n_epochs):
     with torch.no_grad():
         model.eval()
 
+        train_acc_metric = Accuracy(task='multiclass', num_classes=2)
         train_loss = 0.
         for data in train_loader:
             out = model(data)
+            train_acc_metric(torch.softmax(out, dim=-1), data['labels'])
             train_loss += out.shape[0]*loss_fn(out, data['labels'])
 
+        val_acc_metric = Accuracy(task='multiclass', num_classes=2)
         val_loss = 0.
         for data in val_loader:
             out = model(data)
+            val_acc_metric(torch.softmax(out, dim=-1), data['labels'])
             val_loss += out.shape[0]*loss_fn(out, data['labels'])
-        print(f'Epoch: {it+1}; train_loss: {train_loss/args.train_size:.3f}; val loss: {val_loss/args.val_size:.3f}')
 
+        train_acc = train_acc_metric.compute()
+        val_acc = val_acc_metric.compute()
+        pbar.set_description(f'[Train_loss: {train_loss/args.train_size:.3f}; train_acc: {train_acc:.3f}; val loss: {val_loss/args.val_size:.3f}; val_acc: {val_acc:.3f}]')
+
+# Save model
+path = f'pretrained_models/reward_models'
+if not os.path.exists(path):
+    os.makedirs(path)
+
+torch.save(model.state_dict(), f'{path}/{args.problem}.pt')
