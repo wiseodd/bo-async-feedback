@@ -141,6 +141,8 @@ for it in pbar:
         val_acc = val_acc_metric.compute()
         pbar.set_description(f'[Train_loss: {train_loss/args.train_size:.3f}; train_acc: {train_acc:.3f}; val loss: {val_loss/args.val_size:.3f}; val_acc: {val_acc:.3f}]')
 
+# TODO reward model normalization
+
 # Save model
 path = f'pretrained_models/reward_models'
 if not os.path.exists(path):
