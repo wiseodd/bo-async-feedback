@@ -10,7 +10,7 @@ from botorch.optim.optimize import optimize_acqf
 from laplace_bayesopt.botorch import LaplaceBoTorch
 from laplace_bayesopt.acqf import TSAcquisitionFunction
 
-import toy_problems
+import problems.toy as toy_problems
 import utils
 
 import argparse, os
@@ -41,7 +41,6 @@ def get_net():
         nn.ReLU(),
         nn.Linear(50, 1)
     )
-
 model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4)
 
 best_y = train_y.min().item()

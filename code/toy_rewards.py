@@ -5,11 +5,13 @@ from torch import distributions as dists
 import torch.utils.data as data_utils
 import tqdm
 import itertools
+from collections import UserDict
 from transformers import get_scheduler
-from torchmetrics import Accuracy
+import torchmetrics as tm
 
-import toy_problems
+import problems.toy as toy_problems
 import utils
+from models.reward_models import ToyRewardModel
 
 import argparse, os
 
@@ -24,38 +26,6 @@ args = parser.parse_args()
 np.random.seed(args.randseed)
 torch.manual_seed(args.randseed)
 
-class RewardModel(nn.Module):
-
-    def __init__(self, dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim+1, 50),  # +1 for the f(x) input
-            nn.ReLU(),
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Linear(50, 1)
-        )
-
-    def forward(self, data):
-        """
-        data: torch.Tensor or dict
-            If training then dict
-            Else torch.Tensor of shape (batch_size, dim)
-        """
-        if isinstance(data, dict):
-            x_0, x_1 = data['x_0'], data['x_1']
-            fx_0, fx_1 = data['fx_0'], data['fx_1']
-
-            # (batch_size, dim+1)
-            input_0 = torch.cat([x_0, fx_0.unsqueeze(-1)], dim=-1)
-            input_1 = torch.cat([x_1, fx_1.unsqueeze(-1)], dim=-1)
-            inputs = torch.stack([input_0, input_1], dim=1)  # (batch_size, 2, dim+1)
-
-            flat_inputs = inputs.reshape(-1, inputs.shape[-1])  # (batch_size*2, dim+1)
-            flat_logits = self.net(flat_inputs)  # (batch_size*2, 1)
-            return flat_logits.reshape(inputs.shape[0], 2)  # (batch_size, 2)
-        else:  # data is torch.Tensor
-            return self.net(data)  # (batch_size, 1)
 
 problem = toy_problems.PROBLEM_LIST[args.problem]()
 f_true = problem.get_function()
@@ -75,9 +45,9 @@ for idx_pair in idx_pairs:
     x_0, x_1 = x_samples[idx_pair[0]], x_samples[idx_pair[1]]
     fx_0, fx_1 = fx_samples[idx_pair[0]], fx_samples[idx_pair[0]]
     label = torch.tensor(problem.get_preference((x_0, fx_0), (x_1, fx_1))).long()
-    dataset.append({
+    dataset.append(UserDict({  # UserDict is required by Laplace
         'x_0': x_0, 'x_1': x_1, 'fx_0': fx_0, 'fx_1': fx_1, 'labels': label
-    })
+    }))
 
 # As dataloader
 class PreferenceDataset(data_utils.Dataset):
@@ -98,7 +68,7 @@ class PreferenceDataset(data_utils.Dataset):
 train_loader = data_utils.DataLoader(PreferenceDataset(split='train'), batch_size=64)
 val_loader = data_utils.DataLoader(PreferenceDataset(split='val'), batch_size=64)
 
-model = RewardModel(dim=problem.dim)
+model = ToyRewardModel(dim=problem.dim)
 loss_fn = nn.CrossEntropyLoss()
 opt = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
 scd = get_scheduler(
@@ -123,14 +93,14 @@ for it in pbar:
     with torch.no_grad():
         model.eval()
 
-        train_acc_metric = Accuracy(task='multiclass', num_classes=2)
+        train_acc_metric = tm.Accuracy(task='multiclass', num_classes=2)
         train_loss = 0.
         for data in train_loader:
             out = model(data)
             train_acc_metric(torch.softmax(out, dim=-1), data['labels'])
             train_loss += out.shape[0]*loss_fn(out, data['labels'])
 
-        val_acc_metric = Accuracy(task='multiclass', num_classes=2)
+        val_acc_metric = tm.Accuracy(task='multiclass', num_classes=2)
         val_loss = 0.
         for data in val_loader:
             out = model(data)
@@ -141,7 +111,32 @@ for it in pbar:
         val_acc = val_acc_metric.compute()
         pbar.set_description(f'[Train_loss: {train_loss/args.train_size:.3f}; train_acc: {train_acc:.3f}; val loss: {val_loss/args.val_size:.3f}; val_acc: {val_acc:.3f}]')
 
-# TODO reward model normalization
+# Reward model normalization
+with torch.no_grad():
+    mean_metric = tm.MeanMetric()
+    mean_sq_metric = tm.MeanMetric()
+
+    for data in train_loader:
+        out = model(data).flatten()  # (batch_size*2,)
+        mean_metric(out)
+        mean_sq_metric(out**2)
+
+    mean = mean_metric.compute()
+    sq_mean = mean**2  # E(f(x))^2
+    mean_sq = mean_sq_metric.compute()  # E(f(x)^2)
+    std = torch.sqrt(mean_sq - sq_mean)  # std(f(x))
+
+    model.register_buffer('f_mean', mean)
+    model.register_buffer('f_std', std)
+
+# Test Laplace
+from laplace import Laplace
+
+la = Laplace(model, likelihood='reward_modeling', hessian_structure='kron', subset_of_weights='all')
+la.fit(train_loader)
+la.optimize_prior_precision()
+f_mean, f_var = la(torch.randn(3, problem.dim+1))
+print('Laplace A-OK')
 
 # Save model
 path = f'pretrained_models/reward_models'
