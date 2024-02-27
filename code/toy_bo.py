@@ -17,7 +17,7 @@ import argparse, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley10', 'hartmann6', 'rastrigin10'])
-parser.add_argument('--exp_len', type=int, default=200)
+parser.add_argument('--exp_len', type=int, default=500)
 parser.add_argument('--cuda', default=False, action='store_true')
 parser.add_argument('--randseed', type=int, default=9999)
 args = parser.parse_args()
@@ -41,7 +41,7 @@ def get_net():
         nn.ReLU(),
         nn.Linear(50, 1)
     )
-model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4)
+model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4, batch_size=1024)
 
 best_y = train_y.min().item()
 trace_best_y = []

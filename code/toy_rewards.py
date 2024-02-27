@@ -129,15 +129,6 @@ with torch.no_grad():
     model.register_buffer('f_mean', mean)
     model.register_buffer('f_std', std)
 
-# Test Laplace
-from laplace import Laplace
-
-la = Laplace(model, likelihood='reward_modeling', hessian_structure='kron', subset_of_weights='all')
-la.fit(train_loader)
-la.optimize_prior_precision()
-f_mean, f_var = la(torch.randn(3, problem.dim+1))
-print('Laplace A-OK')
-
 # Save model
 path = f'pretrained_models/reward_models'
 if not os.path.exists(path):
