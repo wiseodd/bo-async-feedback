@@ -16,7 +16,7 @@ from models.reward_models import ToyRewardModel
 import argparse, os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley10', 'hartmann6', 'rastrigin10'])
+parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley10', 'hartmann6', 'rastrigin10', 'ackley2'])
 parser.add_argument('--train_size', type=int, default=5000)
 parser.add_argument('--val_size', type=int, default=1000)
 parser.add_argument('--n_epochs', type=int, default=100)
@@ -126,8 +126,8 @@ with torch.no_grad():
     mean_sq = mean_sq_metric.compute()  # E(f(x)^2)
     std = torch.sqrt(mean_sq - sq_mean)  # std(f(x))
 
-    model.register_buffer('f_mean', mean)
-    model.register_buffer('f_std', std)
+    model.f_mean = mean
+    model.f_std = std
 
 # Save model
 path = f'pretrained_models/reward_models'

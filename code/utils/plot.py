@@ -35,7 +35,10 @@ def get_mpl_rcParams(width_percent, height_percent, single_col=False):
         'axes.labelsize': SCRIPT_SIZE,
         'axes.unicode_minus': False,
         'axes.formatter.use_mathtext': True,
-        'legend.frameon': False,
+        'legend.frameon': True,
+        'legend.fancybox': False,
+        'legend.facecolor': 'white',
+        'legend.edgecolor': 'black',
         'legend.fontsize': 6,
         'legend.handlelength': 1,
         'xtick.major.size': 1.5,
@@ -43,7 +46,6 @@ def get_mpl_rcParams(width_percent, height_percent, single_col=False):
         'xtick.major.width': 0.5,
         'ytick.major.width': 0.5,
     }
-
     w = width_percent * (COL_WIDTH if single_col else TEXT_WIDTH)
     h = height_percent * TEXT_HEIGHT
 

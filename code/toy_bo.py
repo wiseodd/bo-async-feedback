@@ -46,7 +46,11 @@ if args.method == 'la':
         )
     model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4, batch_size=1024)
 elif args.method == 'gp':
-    model = MLLGP(train_x, train_y)
+    # Hotfix for a numerical issue (not PSD error)
+    n_epochs = (0 if args.problem == 'hartmann6' else 500)
+    model = MLLGP(
+        train_x, train_y, n_epochs=n_epochs
+    )
 
 best_y = train_y.min().item()
 trace_best_y = []

@@ -49,6 +49,29 @@ class Problem:
         raise NotImplementedError
 
 
+class Ackley2(Problem):
+    def __init__(self):
+        dim = 2
+        bounds = torch.tensor(dim*[[-32.768, 32.768]]).T
+        is_maximize = False
+        super().__init__(dim, bounds, is_maximize)
+
+    def get_function(self):
+        return Ackley(dim=self.dim, bounds=self.bounds.T)
+
+    def get_preference(self, xfx_0, xfx_1):
+        # 1. Prefer x that's closer to x_c = [5., ..., 5.]
+        # Note that f(x_c) = 6.594, while the true global min is 0
+        # 2. Prefer x whose f(x) is very close to the global min
+        # Criteria 2 has the same weight as 1
+        def score(x, fx):
+            sub_score_1 = -torch.linalg.norm(x - torch.tensor(self.dim*[10.], device=x.device).float())
+            sub_score_2 = -torch.linalg.norm(fx - self.optimal_value)
+            return 0.7*sub_score_1 + 0.3*sub_score_2
+
+        return np.argmax([score(*xfx_0), score(*xfx_1)])
+
+
 class Ackley10(Problem):
     def __init__(self):
         dim = 10
@@ -142,6 +165,7 @@ class Rastrigin10(Problem):
 
 
 PROBLEM_LIST = {
+    'ackley2': Ackley2,
     'ackley10': Ackley10,
     'hartmann6': Hartmann6,
     'levy10': Levy10,

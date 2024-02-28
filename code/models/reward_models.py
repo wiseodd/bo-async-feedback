@@ -14,6 +14,8 @@ class ToyRewardModel(nn.Module):
             nn.ReLU(),
             nn.Linear(50, 1)
         )
+        self.register_buffer('f_mean', torch.tensor(0., dtype=torch.float))
+        self.register_buffer('f_std', torch.tensor(1., dtype=torch.float))
 
     def forward(self, data):
         """
@@ -37,9 +39,7 @@ class ToyRewardModel(nn.Module):
             out = self.net(data)  # (batch_size, 1)
 
             # Normalize
-            if hasattr(self, 'f_mean'):
-                out = out - getattr(self, 'f_mean')
-            if hasattr(self, 'f_std'):
-                out = out / getattr(self, 'f_std')
+            out = out - getattr(self, 'f_mean')
+            out = out / getattr(self, 'f_std')
 
             return out
