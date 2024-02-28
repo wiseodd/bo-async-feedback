@@ -10,7 +10,7 @@ from transformers import get_scheduler
 import torchmetrics as tm
 
 import problems.toy as toy_problems
-import utils
+from utils import helpers
 from models.reward_models import ToyRewardModel
 
 import argparse, os
@@ -30,7 +30,7 @@ torch.manual_seed(args.randseed)
 problem = toy_problems.PROBLEM_LIST[args.problem]()
 f_true = problem.get_function()
 
-x_samples = utils.sample_x(args.train_size + args.val_size, problem.bounds)
+x_samples = helpers.sample_x(args.train_size + args.val_size, problem.bounds)
 fx_samples = f_true(x_samples)
 
 # Randomly sample pairs

@@ -11,12 +11,14 @@ from laplace_bayesopt.botorch import LaplaceBoTorch
 from laplace_bayesopt.acqf import TSAcquisitionFunction
 
 import problems.toy as toy_problems
-import utils
+from models.surrogates import MLLGP
+from utils import helpers
 
 import argparse, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley10', 'hartmann6', 'rastrigin10'])
+parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=500)
 parser.add_argument('--cuda', default=False, action='store_true')
 parser.add_argument('--randseed', type=int, default=9999)
@@ -30,18 +32,21 @@ true_f = problem.get_function()
 bounds = problem.bounds
 
 # Initialize training data by uniform sampling within the bounds
-train_x = utils.sample_x(20, bounds)
+train_x = helpers.sample_x(20, bounds)
 train_y = true_f(train_x).reshape(-1, 1)
 
-def get_net():
-    return torch.nn.Sequential(
-        nn.Linear(problem.dim, 50),
-        nn.ReLU(),
-        nn.Linear(50, 50),
-        nn.ReLU(),
-        nn.Linear(50, 1)
-    )
-model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4, batch_size=1024)
+if args.method == 'la':
+    def get_net():
+        return torch.nn.Sequential(
+            nn.Linear(problem.dim, 50),
+            nn.ReLU(),
+            nn.Linear(50, 50),
+            nn.ReLU(),
+            nn.Linear(50, 1)
+        )
+    model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4, batch_size=1024)
+elif args.method == 'gp':
+    model = MLLGP(train_x, train_y)
 
 best_y = train_y.min().item()
 trace_best_y = []
@@ -75,7 +80,7 @@ for i in pbar:
     )
 
 # Save results
-path = f'results/toy/{args.problem}'
+path = f'results/toy/{args.problem}/{args.method}'
 if not os.path.exists(path):
     os.makedirs(path)
 
