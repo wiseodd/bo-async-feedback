@@ -8,8 +8,12 @@ import torch.nn.functional as F
 import torch
 from gpytorch.likelihoods import Likelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood
-from botorch.models.gp_regression import SingleTaskGP
 from gpytorch.kernels import Kernel
+
+from botorch.models.model import Model
+from botorch.models.gp_regression import SingleTaskGP
+
+from typing import List
 
 
 class MLP(nn.Module):

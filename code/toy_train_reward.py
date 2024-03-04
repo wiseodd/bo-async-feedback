@@ -11,7 +11,7 @@ import torchmetrics as tm
 
 import problems.toy as toy_problems
 from utils import helpers
-from models.reward_models import ToyRewardModel
+from models.reward import ToyRewardModel
 
 import argparse, os
 

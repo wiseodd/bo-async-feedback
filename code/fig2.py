@@ -12,7 +12,7 @@ import seaborn as sns
 import pprint
 
 import problems.toy as toy_problems
-from models.reward_models import ToyRewardModel
+from models.reward import ToyRewardModel
 
 
 problem = toy_problems.Ackley2()
