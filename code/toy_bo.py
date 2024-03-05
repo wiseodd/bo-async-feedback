@@ -126,8 +126,6 @@ for i in pbar:
     # Update vanilla BO posterior
     model = model.condition_on_observations(new_x, new_y)
 
-    # TODO update reward model; with schedule
-
     if not args.with_expert:
         new_y_val = new_y.item()
         truth = (new_y_val > best_y) if problem.is_maximize else (new_y_val < best_y)
@@ -137,6 +135,20 @@ for i in pbar:
 
         desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y_val:.3f}]'
     else:
+        # TODO update reward model; with schedule
+        new_idx_pairs = helpers.sample_pair_idxs(model.train_X, num_samples=1)
+        new_train_pref = []
+        for idx_pair in new_idx_pairs:
+            x_0 = model.train_X[idx_pair[0]]
+            x_1 = model.train_X[idx_pair[1]]
+            label = torch.tensor(problem.get_preference(x_0, x_1)).long()
+            new_train_pref.append(UserDict({
+                'x_0': x_0,
+                'x_1': x_1,
+                'labels': label
+            }))
+        model_pref = model_pref.condition_on_observations(new_train_pref)
+
         with torch.no_grad():
             inputs = torch.cat([best_x, new_x], dim=0).unsqueeze(1)
             outs = model_pref.posterior(inputs).mean.squeeze()  # (2,)
@@ -154,7 +166,7 @@ for i in pbar:
         trace_best_r.append(best_r)
         trace_best_scal_y.append(best_scal_y)
 
-        desc = f'[f(x*) = {best_y:.3f}, r(x*) = {best_r:.3f}, scal y* = {best_scal_y:.3f},f(x) = {new_y.item():.3f}, r(x) = {new_r:.3f}]'
+        desc = f'[f(x*): {best_y:.3f}, r(x*): {best_r:.3f}, scal_y*: {best_scal_y:.3f}, f(x): {new_y.item():.3f}, r(x): {new_r:.3f}]'
 
     pbar.set_description(desc)
 
