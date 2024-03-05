@@ -1,25 +1,24 @@
 import torch
 import numpy as np
 
-from botorch.acquisition import AcquisitionFunction
-from botorch.models.model import ModelList
+from botorch.acquisition import AnalyticAcquisitionFunction
+from botorch.models.model import Model, ModelList
 
 from typing import Optional, List
 
 
-class ScalarizedTSWithExpert(AcquisitionFunction):
+class TSWithExpertPref(AnalyticAcquisitionFunction):
     """
-    Scalarized Thompson sampling acquisition function.
+    Scalarized Thompson sampling acquisition function with expert preferences.
 
     Parameters:
     -----------
     model: botorch.models.model.Model
 
-    posterior_transform: botorch.acquisition.objective.PosteriorTransform
-        Optional
+    model_pref: botorch.models.model.Model
 
     maximize: bool, default = True
-        Whether to maximize the acqf f_s or minimize it
+        Whether to maximize the acqf
 
     random_state: int, default = 123
         The random state of the sampling f_s ~ p(f | D). This is to ensure that for any given x,
@@ -27,19 +26,15 @@ class ScalarizedTSWithExpert(AcquisitionFunction):
     """
     def __init__(
         self,
-        model: ModelList,
-        weights: Optional[torch.Tensor] = None,
+        model: Model,
+        model_pref: Model,
+        maximize: bool = True,
         random_state: int = 123
     )-> None:
         super().__init__(model)
-
+        self.model_pref = model_pref
+        self.maximize = maximize
         self.random_state = random_state
-        self.n_models = len(model.models)
-
-        if weights is None:
-            weights = torch.ones(self.n_models)
-            weights /= self.n_models  # convex combination
-        self.weights = weights
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -54,19 +49,19 @@ class ScalarizedTSWithExpert(AcquisitionFunction):
             Shape (n,)
         """
         posterior = self.model.posterior(x)
-        # Each (n, 1, n_models)
-        mean, std = posterior.mean, posterior.variance.sqrt()
+        mean, std = self._mean_and_sigma(x)
 
+        # Thompson sample; deterministic via the random state
         generator = torch.Generator(device=x.device).manual_seed(self.random_state)
         eps = torch.randn(*std.shape, device=x.device, generator=generator)
-        f_samples = mean + std * eps
+        f_sample = mean + std * eps
+        f_sample *= 1 if self.maximize else -1
 
-        # Scalarize to (n, 1, 1), then (n,)
-        if self.weights.device != x.device:
-            self.weights.to(x.device)
+        # Thompson sample for the expert preference model
+        posterior_pref = self.model_pref.posterior(x)
+        mean_pref = posterior_pref.mean.view(mean.shape)
+        std_pref = posterior_pref.variance.sqrt().view(std.shape)
+        pref_sample = mean_pref + std_pref * eps  # Always maximization
 
-        f_sample = torch.einsum('nom,m->no', f_samples, self.weights)
-        f_sample = f_sample.squeeze()
-
-        return f_sample
+        return f_sample + pref_sample
 

@@ -101,21 +101,16 @@ class Hartmann6(Problem):
         bounds = torch.tensor(dim*[[0., 1.]]).T
         is_maximize = False
         super().__init__(dim, bounds, is_maximize)
+        self.preferred_x = dim*[0.]
 
     def get_function(self):
         return Hartmann(dim=self.dim, bounds=self.bounds.T)
 
-    def get_preference(self, xfx_0, xfx_1):
-        # 1. Prefer x that's closer to x_c = [0.5, ..., 0.5]
-        # Note that f(x_c) = -0.505, while the true global min is -3.322
-        # 2. Prefer x whose f(x) is very close to the global min
-        # Criteria 1 has more weight than 2
-        def score(x, fx):
-            sub_score_1 = -torch.linalg.norm(x - torch.tensor(self.dim*[0.5], device=x.device).float())
-            sub_score_2 = -torch.linalg.norm(fx - self.optimal_value)
-            return 0.6*sub_score_1 + 0.4*sub_score_2
+    def get_preference(self, x0, x1):
+        def score(x):
+            return -torch.linalg.norm(x - torch.tensor(self.preferred_x, device=x.device).float())
 
-        return np.argmax([score(*xfx_0), score(*xfx_1)])
+        return np.argmax([score(x0), score(x1)])
 
 
 class Levy10(Problem):
@@ -174,10 +169,10 @@ PROBLEM_LIST = {
 
 
 if __name__ == '__main__':
-    problem = Rastrigin10()
+    problem = Hartmann6()
     f = problem.get_function()
-    print(f(torch.tensor(problem.dim*[3.]).float()), f.optimal_value)
-    x0, x1 = torch.randn(problem.dim), torch.randn(problem.dim)
-    fx0, fx1 = f(x0), f(x1)
-    print(x0, fx0, x1, fx1)
-    print(problem.get_preference((x0, fx0), (x1, fx1)))
+    print(f(torch.tensor(problem.dim*[0.]).float()), f.optimal_value)
+
+    for _ in range(10):
+        x0, x1 = torch.randn(problem.dim), torch.randn(problem.dim)
+        print(problem.get_preference(x0, x1))
