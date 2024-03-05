@@ -28,23 +28,36 @@ class Problem:
         """
         raise NotImplementedError
 
-    def get_preference(xfx_0, xfx_1):
+    def get_preference(self, x_0, x_1):
         """
-        Given two pairs (x_0, f(x_0)) and (x_1, f(x_1)), return 0 if the first pair is preferred,
-        otherwise return 1
+        Given a pair x_0 and x_1, return 0 if the first one is preferred,
+        otherwise return 1.
 
         Parameters:
         -----------
-        xfx_0: Tuple of torch.Tensor's
-            Format: (x, f(x_0)), where x has shape (n_dim,) and f(x_0) has shape (), i.e. a scalar
+        x_0: torch.Tensor
+            Shape (n_dim,)
 
-        xfx_1: Tuple of torch.Tensor's
-            See above
+        x_1: torch.Tensor
+            See above.
 
         Returns:
         --------
         label: int
-            Either 0 or 1, depending which (x_i, f(x_i)) is preferred
+            Either 0 or 1, depending which x's is preferred
+        """
+        def score(x):
+            return -torch.linalg.norm(x - torch.tensor(self.preferred_x, device=x.device).float())
+
+        return np.argmax([score(x_0), score(x_1)])
+
+    @property
+    def preferred_x(self):
+        """
+        Returns:
+        --------
+        preferred_x: List[float]
+            Length equals self.dim
         """
         raise NotImplementedError
 
@@ -59,17 +72,9 @@ class Ackley2(Problem):
     def get_function(self):
         return Ackley(dim=self.dim, bounds=self.bounds.T)
 
-    def get_preference(self, xfx_0, xfx_1):
-        # 1. Prefer x that's closer to x_c = [5., ..., 5.]
-        # Note that f(x_c) = 6.594, while the true global min is 0
-        # 2. Prefer x whose f(x) is very close to the global min
-        # Criteria 2 has the same weight as 1
-        def score(x, fx):
-            sub_score_1 = -torch.linalg.norm(x - torch.tensor(self.dim*[10.], device=x.device).float())
-            sub_score_2 = -torch.linalg.norm(fx - self.optimal_value)
-            return 0.7*sub_score_1 + 0.3*sub_score_2
-
-        return np.argmax([score(*xfx_0), score(*xfx_1)])
+    @property
+    def preferred_x(self):
+        return self.dim*[10.]
 
 
 class Ackley10(Problem):
@@ -82,17 +87,9 @@ class Ackley10(Problem):
     def get_function(self):
         return Ackley(dim=self.dim, bounds=self.bounds.T)
 
-    def get_preference(self, xfx_0, xfx_1):
-        # 1. Prefer x that's closer to x_c = [5., ..., 5.]
-        # Note that f(x_c) = 6.594, while the true global min is 0
-        # 2. Prefer x whose f(x) is very close to the global min
-        # Criteria 2 has the same weight as 1
-        def score(x, fx):
-            sub_score_1 = -torch.linalg.norm(x - torch.tensor(self.dim*[5.], device=x.device).float())
-            sub_score_2 = -torch.linalg.norm(fx - self.optimal_value)
-            return 0.5*sub_score_1 + 0.5*sub_score_2
-
-        return np.argmax([score(*xfx_0), score(*xfx_1)])
+    @property
+    def preferred_x(self):
+        return self.dim*[5.]
 
 
 class Hartmann6(Problem):
@@ -101,16 +98,13 @@ class Hartmann6(Problem):
         bounds = torch.tensor(dim*[[0., 1.]]).T
         is_maximize = False
         super().__init__(dim, bounds, is_maximize)
-        self.preferred_x = dim*[0.]
 
     def get_function(self):
         return Hartmann(dim=self.dim, bounds=self.bounds.T)
 
-    def get_preference(self, x0, x1):
-        def score(x):
-            return -torch.linalg.norm(x - torch.tensor(self.preferred_x, device=x.device).float())
-
-        return np.argmax([score(x0), score(x1)])
+    @property
+    def preferred_x(self):
+        return self.dim*[0.]
 
 
 class Levy10(Problem):
@@ -123,17 +117,9 @@ class Levy10(Problem):
     def get_function(self):
         return Levy(dim=self.dim, bounds=self.bounds.T)
 
-    def get_preference(self, xfx_0, xfx_1):
-        # 1. Prefer x that's closer to x_c = [0, ..., 0]
-        # Note that f(x_c) = 1.442, while the true global min is 0
-        # 2. Prefer x whose f(x) is very close to the global min
-        # Criteria 0 has much more weight than 1
-        def score(x, fx):
-            sub_score_1 = -torch.linalg.norm(x - torch.tensor(self.dim*[0.], device=x.device).float())
-            sub_score_2 = -torch.linalg.norm(fx - self.optimal_value)
-            return 0.8*sub_score_1 + 0.2*sub_score_2
-
-        return np.argmax([score(*xfx_0), score(*xfx_1)])
+    @property
+    def preferred_x(self):
+        return self.dim*[0.]
 
 
 class Rastrigin10(Problem):
@@ -146,17 +132,9 @@ class Rastrigin10(Problem):
     def get_function(self):
         return Rastrigin(dim=self.dim, bounds=self.bounds.T)
 
-    def get_preference(self, xfx_0, xfx_1):
-        # 1. Prefer x that's closer to x_c = [-3, ..., -3]
-        # Note that f(x_c) = 90, while the true global min is 0
-        # 2. Prefer x whose f(x) is very close to the global min
-        # Criteria 1 has much more weight than 0
-        def score(x, fx):
-            sub_score_1 = -torch.linalg.norm(x - torch.tensor(self.dim*[-3.], device=x.device).float())
-            sub_score_2 = -torch.linalg.norm(fx - self.optimal_value)
-            return 0.2*sub_score_1 + 0.8*sub_score_2
-
-        return np.argmax([score(*xfx_0), score(*xfx_1)])
+    @property
+    def preferred_x(self):
+        return self.dim*[-3.]
 
 
 PROBLEM_LIST = {

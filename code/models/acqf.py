@@ -17,6 +17,9 @@ class TSWithExpertPref(AnalyticAcquisitionFunction):
 
     model_pref: botorch.models.model.Model
 
+    gamma: float > 0, default = 0
+        Contribution strength of model_pref.
+
     maximize: bool, default = True
         Whether to maximize the acqf
 
@@ -28,11 +31,13 @@ class TSWithExpertPref(AnalyticAcquisitionFunction):
         self,
         model: Model,
         model_pref: Model,
+        gamma: float = 0,
         maximize: bool = True,
         random_state: int = 123
     )-> None:
         super().__init__(model)
         self.model_pref = model_pref
+        self.gamma = gamma
         self.maximize = maximize
         self.random_state = random_state
 
@@ -48,7 +53,6 @@ class TSWithExpertPref(AnalyticAcquisitionFunction):
         f_sample: torch.Tensor
             Shape (n,)
         """
-        posterior = self.model.posterior(x)
         mean, std = self._mean_and_sigma(x)
 
         # Thompson sample; deterministic via the random state
@@ -63,5 +67,5 @@ class TSWithExpertPref(AnalyticAcquisitionFunction):
         std_pref = posterior_pref.variance.sqrt().view(std.shape)
         pref_sample = mean_pref + std_pref * eps  # Always maximization
 
-        return f_sample + pref_sample
+        return f_sample + self.gamma * pref_sample
 
