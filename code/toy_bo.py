@@ -77,18 +77,30 @@ if args.with_expert:
             'labels': label
         }))
 
-    # Create a surrogate to model expert preferences
+    # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
         lambda: ToyRewardModel(dim=problem.dim), train_pref,
         noise_var=1e-4, batch_size=1024, backend=AsdlGGN,
     )
 
+# Scalarization to take into account both f(x) and expert preferences
+def scalarize(y, r):
+    return 0.5 * (y if problem.is_maximize else -y) + 0.5* r
+
 
 #################################################################################################
 #                                 Bayesian Optimization Loop                                    #
 #################################################################################################
+best_x = train_x[train_y.argmin().item()].unsqueeze(0)
 best_y = train_y.min().item()
 trace_best_y = []
+
+if args.with_expert:
+    best_r = model_pref.posterior(best_x.unsqueeze(1)).mean.squeeze().item()
+    best_scal_y = scalarize(best_y, best_r)
+    trace_best_r = []
+    trace_best_scal_y = []
+
 pbar = tqdm.trange(args.exp_len)
 pbar.set_description(
     f'[Best f(x) = {best_y:.3f}]'
@@ -114,12 +126,35 @@ for i in pbar:
     # Update vanilla BO posterior
     model = model.condition_on_observations(new_x, new_y)
 
-    new_y_val = new_y.item()
-    truth = (new_y_val > best_y) if problem.is_maximize else (new_y_val < best_y)
-    if truth:
-        best_y = new_y.item()
-    trace_best_y.append(best_y)
-    desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y_val:.3f}]'
+    # TODO update reward model; with schedule
+
+    if not args.with_expert:
+        new_y_val = new_y.item()
+        truth = (new_y_val > best_y) if problem.is_maximize else (new_y_val < best_y)
+        if truth:
+            best_y = new_y.item()
+        trace_best_y.append(best_y)
+
+        desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y_val:.3f}]'
+    else:
+        with torch.no_grad():
+            inputs = torch.cat([best_x, new_x], dim=0).unsqueeze(1)
+            outs = model_pref.posterior(inputs).mean.squeeze()  # (2,)
+            best_r, new_r = outs[0].item(), outs[1].item()
+
+        scal_y_old = scalarize(best_y, best_r)
+        scal_y_new = scalarize(new_y.item(), new_r)
+        if scal_y_new > scal_y_old:
+            best_x = new_x
+            best_y = new_y.item()
+            best_r = new_r
+            best_scal_y = scal_y_new
+
+        trace_best_y.append(best_y)
+        trace_best_r.append(best_r)
+        trace_best_scal_y.append(best_scal_y)
+
+        desc = f'[f(x*) = {best_y:.3f}, r(x*) = {best_r:.3f}, scal y* = {best_scal_y:.3f},f(x) = {new_y.item():.3f}, r(x) = {new_r:.3f}]'
 
     pbar.set_description(desc)
 
@@ -131,3 +166,7 @@ if not os.path.exists(path):
 
 # Vanilla BO
 np.save(f'{path}/trace_best_y_{args.randseed}.npy', trace_best_y)
+
+if args.with_expert:
+    np.save(f'{path}/trace_best_r_{args.randseed}.npy', trace_best_r)
+    np.save(f'{path}/trace_best_scal_y_{args.randseed}.npy', trace_best_scal_y)
