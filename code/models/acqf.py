@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from botorch.acquisition import AcquisitionFunction
 from botorch.models.model import ModelList
@@ -28,19 +29,16 @@ class ScalarizedTSWithExpert(AcquisitionFunction):
         self,
         model: ModelList,
         weights: Optional[torch.Tensor] = None,
-        maximize: bool = True,
         random_state: int = 123
     )-> None:
         super().__init__(model)
 
-        self.maximize = maximize
         self.random_state = random_state
         self.n_models = len(model.models)
 
         if weights is None:
             weights = torch.ones(self.n_models)
             weights /= self.n_models  # convex combination
-        assert weights.sum() == 1
         self.weights = weights
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -70,6 +68,5 @@ class ScalarizedTSWithExpert(AcquisitionFunction):
         f_sample = torch.einsum('nom,m->no', f_samples, self.weights)
         f_sample = f_sample.squeeze()
 
-        # BoTorch assumes acqf to be maximization
-        return f_sample if self.maximize else -f_sample
+        return f_sample
 
