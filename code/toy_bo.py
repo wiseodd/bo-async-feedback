@@ -22,11 +22,11 @@ from collections import UserDict
 import argparse, os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', default='hartmann6', choices=['levy10', 'ackley10', 'hartmann6', 'rastrigin10'])
+parser.add_argument('--problem', default='hartmann6', choices=['levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10'])
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--exp_len', type=int, default=500)
-parser.add_argument('--cuda', default=False, action='store_true')
+parser.add_argument('--device', default='cpu', choices=['cpu', 'mps', 'cuda'])
 parser.add_argument('--randseed', type=int, default=1)
 args = parser.parse_args()
 
@@ -42,7 +42,7 @@ bounds = problem.bounds
 
 # Initialize training data by uniform sampling within the bounds
 train_x = helpers.sample_x(20, bounds)
-train_y = true_f(train_x).reshape(-1, 1)
+train_y = true_f(train_x).reshape(-1, 1).to(args.device)
 
 if args.method == 'la':
     def get_net():
@@ -53,7 +53,10 @@ if args.method == 'la':
             nn.ReLU(),
             nn.Linear(50, 1)
         )
-    model = LaplaceBoTorch(get_net, train_x, train_y, noise_var=1e-4, batch_size=1024, backend=AsdlGGN)
+    model = LaplaceBoTorch(
+        get_net, train_x, train_y, noise_var=1e-4, batch_size=1024,
+        backend=AsdlGGN, device=args.device
+    )
 elif args.method == 'gp':
     # Hotfix for a numerical issue (not PSD error)
     n_epochs = (0 if args.problem == 'hartmann6' else 500)
@@ -65,27 +68,17 @@ elif args.method == 'gp':
 #################################################################################################
 if args.with_expert:
     # Gather initial preference dataset
-    idx_pairs = helpers.sample_pair_idxs(train_x, num_samples=20)
-    train_pref = []
-    for idx_pair in idx_pairs:
-        x_0 = train_x[idx_pair[0]]
-        x_1 = train_x[idx_pair[1]]
-        label = torch.tensor(problem.get_preference(x_0, x_1)).long()
-        train_pref.append(UserDict({
-            'x_0': x_0,
-            'x_1': x_1,
-            'labels': label
-        }))
+    train_pref = helpers.sample_pref_data(train_x, problem.get_preference, 20)
 
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
         lambda: ToyRewardModel(dim=problem.dim), train_pref,
-        noise_var=1e-4, batch_size=1024, backend=AsdlGGN,
+        noise_var=1e-4, batch_size=1024, backend=AsdlGGN, device=args.device
     )
 
-# Scalarization to take into account both f(x) and expert preferences
-def scalarize(y, r):
-    return 0.5 * (y if problem.is_maximize else -y) + 0.5* r
+    # Scalarization to take into account both f(x) and expert preferences
+    def scalarize(y, r):
+        return 0.5 * (y if problem.is_maximize else -y) + 0.5* r
 
 
 #################################################################################################
@@ -109,11 +102,11 @@ pbar.set_description(
 # BO Loop
 for i in pbar:
     if not args.with_expert:
-        acqf = TSAcquisitionFunction(model, maximize=problem.is_maximize)
+        acqf = TSAcquisitionFunction(model, maximize=problem.is_maximize).to(args.device)
     else:
         acqf = TSWithExpertPref(
             model=model, model_pref=model_pref, maximize=False
-        )
+        ).to(args.device)
 
     new_x, _ = optimize_acqf(acqf, bounds=bounds, q=1, num_restarts=10, raw_samples=20)
 
@@ -136,17 +129,7 @@ for i in pbar:
         desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y_val:.3f}]'
     else:
         # TODO update reward model; with schedule
-        new_idx_pairs = helpers.sample_pair_idxs(model.train_X, num_samples=1)
-        new_train_pref = []
-        for idx_pair in new_idx_pairs:
-            x_0 = model.train_X[idx_pair[0]]
-            x_1 = model.train_X[idx_pair[1]]
-            label = torch.tensor(problem.get_preference(x_0, x_1)).long()
-            new_train_pref.append(UserDict({
-                'x_0': x_0,
-                'x_1': x_1,
-                'labels': label
-            }))
+        new_train_pref = helpers.sample_pref_data(model.train_X, problem.get_preference, 1)
         model_pref = model_pref.condition_on_observations(new_train_pref)
 
         with torch.no_grad():

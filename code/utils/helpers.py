@@ -2,6 +2,7 @@ import torch
 import torch.distributions as dists
 import itertools
 import numpy as np
+from collections import UserDict
 
 
 def sample_x(num_points, bounds):
@@ -29,12 +30,12 @@ def sample_x(num_points, bounds):
 
 def sample_pair_idxs(source, num_samples):
     """
-    Sample pairs (in the form of indices) from the source list.
+    Sample pairs (in the form of indices) from source.
     Without replacement.
 
     Parameters:
     -----------
-    source: List[Any]
+    source: Iterable
 
     num_samples: int
         Must be < len(source) and > 0
@@ -48,3 +49,45 @@ def sample_pair_idxs(source, num_samples):
     idx_pairs = list(idx_pairs)
     np.random.shuffle(idx_pairs)
     return np.array(idx_pairs[:num_samples])  # (num_samples, 2)
+
+
+def sample_pref_data(source, pref_func, num_samples):
+    """
+    Sample preference data list (x_0, x_1, label) from source.
+    The label is obtained by calling `pref_func(x_0, x_1)`.
+    Without replacement.
+
+    Parameters:
+    -----------
+    source: Iterable
+
+    pref_func: Callable
+        Takes two tensors, outputs 0 or 1
+
+    num_samples: int
+        Must be < len(source) and > 0
+
+    Returns:
+    --------
+    data_pref: List[UserDict]
+        Length num_samples. Format:
+        ```
+        UserDict({
+            'x_0': torch.FloatTensor,
+            'x_1': torch.FloatTensor,
+            'labels': torch.LongTensor
+        })
+        ```
+    """
+    idx_pairs = sample_pair_idxs(source, num_samples)
+    data_pref = []
+    for idx_pair in idx_pairs:
+        x_0 = source[idx_pair[0]]
+        x_1 = source[idx_pair[1]]
+        label = torch.tensor(pref_func(x_0, x_1)).long()
+        data_pref.append(UserDict({
+            'x_0': x_0,
+            'x_1': x_1,
+            'labels': label
+        }))
+    return data_pref
