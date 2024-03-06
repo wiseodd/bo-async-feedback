@@ -18,17 +18,26 @@ from typing import List
 
 class MLP(nn.Module):
 
-    def __init__(self, in_dim, out_dim=1):
+    def __init__(self, in_dim, out_dim=1, normalize_output=False):
         super().__init__()
         self.fc1 = nn.Linear(in_dim, 50)
         self.fc2 = nn.Linear(50, 50)
         self.fc3 = nn.Linear(50, out_dim)
 
+        self.normalize_output = normalize_output
+        self.register_buffer('f_mean', torch.tensor(0., dtype=torch.float))
+        self.register_buffer('f_std', torch.tensor(1., dtype=torch.float))
+
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        return self.fc3(x)
+        out = self.fc3(x)
 
+        if self.normalize_output:
+            out = out - getattr(self, 'f_mean')
+            out = out / getattr(self, 'f_std')
+
+        return out
 
 
 class MLLGP(SingleTaskGP):

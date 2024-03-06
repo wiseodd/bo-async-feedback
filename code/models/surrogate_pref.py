@@ -3,13 +3,16 @@ import warnings
 warnings.filterwarnings('ignore')
 import torch
 from torch import nn, optim
-from gpytorch import distributions as gdists
 import torch.utils.data as data_utils
+
+from gpytorch import distributions as gdists
 import botorch.models.model as botorch_model
 from botorch.posteriors.gpytorch import GPyTorchPosterior
+
 from laplace import Laplace
 from laplace.curvature import BackPackGGN, CurvatureInterface, AsdlGGN
 from laplace.marglik_training import marglik_training
+
 from typing import *
 import math
 from collections import UserDict

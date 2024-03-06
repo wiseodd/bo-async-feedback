@@ -5,14 +5,14 @@ from torch import distributions as dists
 import tqdm
 
 from botorch.optim.optimize import optimize_acqf
-from botorch.models.model import ModelList
+from botorch.models.transforms.outcome import Standardize
 
 from laplace.curvature import AsdlGGN
 from laplace_bayesopt.botorch import LaplaceBoTorch
 from laplace_bayesopt.acqf import TSAcquisitionFunction
 
 import problems.toy as toy_problems
-from models.surrogate import MLLGP
+from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch
 from models.reward import ToyRewardModel
 from models.acqf import TSWithExpertPref
@@ -22,7 +22,7 @@ from collections import UserDict
 import argparse, os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', default='hartmann6', choices=['levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10'])
+parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10'])
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--exp_len', type=int, default=500)
@@ -46,13 +46,7 @@ train_y = true_f(train_x).reshape(-1, 1).to(args.device)
 
 if args.method == 'la':
     def get_net():
-        return torch.nn.Sequential(
-            nn.Linear(problem.dim, 50),
-            nn.ReLU(),
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Linear(50, 1)
-        )
+        return MLP(problem.dim, normalize_output=True)
     model = LaplaceBoTorch(
         get_net, train_x, train_y, noise_var=1e-4, batch_size=1024,
         backend=AsdlGGN, device=args.device
@@ -73,8 +67,17 @@ if args.with_expert:
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
         lambda: ToyRewardModel(dim=problem.dim), train_pref,
-        noise_var=1e-4, batch_size=1024, backend=AsdlGGN, device=args.device
+        noise_var=1e-4, batch_size=1024, backend=AsdlGGN, device=args.device,
+        enable_backprop=False
     )
+
+    # To make sure f(x) has the same scale as the preference model's output
+    def y_transform(y):
+        trf = Standardize(1)
+        trf.train()
+        trf(model.orig_train_Y)  # Fit
+        trf.eval()
+        return trf(y)[0]
 
     # Scalarization to take into account both f(x) and expert preferences
     def scalarize(y, r):
@@ -90,7 +93,7 @@ trace_best_y = []
 
 if args.with_expert:
     best_r = model_pref.posterior(best_x.unsqueeze(1)).mean.squeeze().item()
-    best_scal_y = scalarize(best_y, best_r)
+    best_scal_y = scalarize(y_transform(best_y).item(), best_r)
     trace_best_r = []
     trace_best_scal_y = []
 
@@ -120,26 +123,25 @@ for i in pbar:
     model = model.condition_on_observations(new_x, new_y)
 
     if not args.with_expert:
-        new_y_val = new_y.item()
-        truth = (new_y_val > best_y) if problem.is_maximize else (new_y_val < best_y)
+        truth = (new_y.item() > best_y) if problem.is_maximize else (new_y.item() < best_y)
         if truth:
             best_y = new_y.item()
         trace_best_y.append(best_y)
 
-        desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y_val:.3f}]'
+        desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y.item():.3f}]'
     else:
         # TODO update reward model; with schedule
         new_train_pref = helpers.sample_pref_data(model.train_X, problem.get_preference, 1)
         model_pref = model_pref.condition_on_observations(new_train_pref)
 
         with torch.no_grad():
-            inputs = torch.cat([best_x, new_x], dim=0).unsqueeze(1)
-            outs = model_pref.posterior(inputs).mean.squeeze()  # (2,)
-            best_r, new_r = outs[0].item(), outs[1].item()
+            # inputs = torch.cat([best_x, new_x], dim=0).unsqueeze(1)
+            out = model_pref.posterior(new_x.unsqueeze(1)).mean.squeeze()  # (1,)
+            new_r = out.item()
 
-        scal_y_old = scalarize(best_y, best_r)
-        scal_y_new = scalarize(new_y.item(), new_r)
-        if scal_y_new > scal_y_old:
+        # Use the same scale
+        scal_y_new = scalarize(y_transform(new_y).item(), new_r)
+        if scal_y_new > best_scal_y:
             best_x = new_x
             best_y = new_y.item()
             best_r = new_r
@@ -159,9 +161,9 @@ path = f'results/toy/{problem_name}/{args.method}'
 if not os.path.exists(path):
     os.makedirs(path)
 
-# Vanilla BO
 np.save(f'{path}/trace_best_y_{args.randseed}.npy', trace_best_y)
 
 if args.with_expert:
     np.save(f'{path}/trace_best_r_{args.randseed}.npy', trace_best_r)
     np.save(f'{path}/trace_best_scal_y_{args.randseed}.npy', trace_best_scal_y)
+    np.save(f'{path}/best_x_{args.randseed}.npy', best_x.squeeze().numpy())

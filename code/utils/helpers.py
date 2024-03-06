@@ -3,6 +3,7 @@ import torch.distributions as dists
 import itertools
 import numpy as np
 from collections import UserDict
+import torchmetrics as tm
 
 
 def sample_x(num_points, bounds):

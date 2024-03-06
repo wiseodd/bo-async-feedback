@@ -81,8 +81,8 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 
         try:
             trace_best_y = np.stack([np.load(f'{path}/trace_best_y_{rs}.npy') for rs in RANDSEEDS])
-            trace_best_y_pref = np.stack([np.load(f'{path}/trace_best_y_pref_{rs}.npy') for rs in RANDSEEDS])
-            trace_best_y_scal = np.stack([np.load(f'{path}/trace_best_y_scal_{rs}.npy') for rs in RANDSEEDS])
+            trace_best_y_pref = np.stack([np.load(f'{path}/trace_best_r_{rs}.npy') for rs in RANDSEEDS])
+            trace_best_y_scal = np.stack([np.load(f'{path}/trace_best_scal_y_{rs}.npy') for rs in RANDSEEDS])
         except FileNotFoundError:
             continue
 
@@ -99,7 +99,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
             color=METHOD2COLOR[f'{method}-pref'], alpha=0.25
         )
 
-        # expert(x, f(x))
+        # Preference
         mean = np.mean(trace_best_y_pref, axis=0)
         sem = st.sem(trace_best_y_pref, axis=0)
         ax.plot(
