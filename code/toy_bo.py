@@ -5,8 +5,7 @@ from torch import distributions as dists
 import tqdm
 
 from botorch.optim.optimize import optimize_acqf
-from botorch.models.transforms.outcome import Standardize
-from botorch.generation.gen import gen_candidates_torch
+from botorch.acquisition.analytic import ExpectedImprovement
 
 from laplace.curvature import AsdlGGN
 from laplace_bayesopt.botorch import LaplaceBoTorch
@@ -20,7 +19,7 @@ from models.acqf import ThompsonSamplingWithExpertPref
 from utils import helpers
 
 from collections import UserDict
-import argparse, os
+import argparse, os, sys
 
 np.set_printoptions(precision=3)
 
@@ -28,6 +27,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10'])
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=250)
+parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
 parser.add_argument('--expert_prob', type=float, default=0.25)
@@ -35,6 +35,10 @@ parser.add_argument('--verbose', default=False, action='store_true')
 parser.add_argument('--device', default='cpu', choices=['cpu', 'mps', 'cuda'])
 parser.add_argument('--randseed', type=int, default=1)
 args = parser.parse_args()
+
+if args.with_expert and args.acqf == 'ei':
+    print('Thompson sampling is a must for expert feedback')
+    sys.exit(1)
 
 assert 0 <= args.expert_prob <= 1
 
@@ -109,7 +113,10 @@ pbar.set_description(
 # BO Loop
 for i in pbar:
     if not args.with_expert:
-        acqf = ThompsonSampling(model, maximize=problem.is_maximize).to(args.device)
+        if args.acqf == 'ts':
+            acqf = ThompsonSampling(model, maximize=problem.is_maximize).to(args.device)
+        else:
+            acqf = ExpectedImprovement(model, best_f=best_y, maximize=problem.is_maximize).to(args.device)
     else:
         acqf = ThompsonSamplingWithExpertPref(
             model=model, model_pref=model_pref, maximize=False, gamma=args.expert_gamma
@@ -176,7 +183,10 @@ if not os.path.exists(path):
     os.makedirs(path)
 
 if not args.with_expert:
-    np.save(f'{path}/trace-best-y_{args.randseed}.npy', trace_best_y)
+    if args.acqf == 'ts':
+        np.save(f'{path}/trace-best-y_{args.randseed}.npy', trace_best_y)
+    elif args.acqf == 'ei':
+        np.save(f'{path}/trace-best-y_ei_{args.randseed}.npy', trace_best_y)
 else:
     print(best_x.squeeze().numpy())
     np.save(f'{path}/trace_best-y_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_y)

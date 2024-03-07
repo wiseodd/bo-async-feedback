@@ -40,7 +40,7 @@ def get_mpl_rcParams(width_percent, height_percent, single_col=False):
         'legend.facecolor': 'white',
         'legend.edgecolor': 'black',
         'legend.fontsize': 6,
-        'legend.handlelength': 1,
+        'legend.handlelength': 2,
         'xtick.major.size': 1.5,
         'ytick.major.size': 1.5,
         'xtick.major.width': 0.5,

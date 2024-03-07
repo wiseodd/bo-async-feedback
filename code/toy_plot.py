@@ -24,7 +24,7 @@ PROBLEM2TITLE = {
     'rastrigin10': r'Rastrigin-10',
 }
 METHODS_BASE = ['gp', 'la']
-METHODS_PREF = ['la']
+METHODS_PREF = ['gp', 'la']
 METHOD2LABEL = {
     'gp': 'GP',
     'la': 'LA',
@@ -87,12 +87,13 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         sem = st.sem(trace_best_y, axis=0)  # Over randseeds
         T = np.arange(len(mean)) + 1
         ax.plot(
-            T, mean, color=METHOD2COLOR[f'{method_pref}-pref'],
-            label=METHOD2LABEL[f'{method_pref}-pref']
+            T, mean, color=METHOD2COLOR[f'{method_pref}'],
+            label=METHOD2LABEL[f'{method_pref}-pref'],
+            linestyle='dashed'
         )
         ax.fill_between(
             T, mean-sem, mean+sem,
-            color=METHOD2COLOR[f'{method_pref}-pref'], alpha=0.25
+            color=METHOD2COLOR[f'{method_pref}'], alpha=0.25
         )
 
     title = f'{PROBLEM2TITLE[problem]}'
