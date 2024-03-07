@@ -277,7 +277,7 @@ class PrefLaplaceBoTorch(botorch_model.Model):
             mean_sq_metric = tm.MeanMetric()
 
             for data in train_loader:
-                out = net(data)  # (batch_size*2,)
+                out = net(data)
                 mean_metric(out)
                 mean_sq_metric(out**2)
 

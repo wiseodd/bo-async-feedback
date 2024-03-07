@@ -27,13 +27,16 @@ np.set_printoptions(precision=3)
 parser = argparse.ArgumentParser()
 parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10'])
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
+parser.add_argument('--exp_len', type=int, default=250)
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
-parser.add_argument('--exp_len', type=int, default=250)
+parser.add_argument('--expert_prob', type=float, default=0.25)
 parser.add_argument('--verbose', default=False, action='store_true')
 parser.add_argument('--device', default='cpu', choices=['cpu', 'mps', 'cuda'])
 parser.add_argument('--randseed', type=int, default=1)
 args = parser.parse_args()
+
+assert 0 <= args.expert_prob <= 1
 
 np.random.seed(args.randseed)
 torch.manual_seed(args.randseed)
@@ -67,7 +70,7 @@ elif args.method == 'gp':
 #################################################################################################
 if args.with_expert:
     # Gather initial preference dataset
-    train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 100)
+    train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 20)
 
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
@@ -95,7 +98,7 @@ if args.with_expert:
     trace_best_scal_y = []
 
 print()
-print(f'Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, gamma: {args.expert_gamma}, randseed: {args.randseed}')
+print(f'Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, gamma: {args.expert_gamma}, prob: {args.expert_prob}, randseed: {args.randseed}')
 print('--------------------------------------------------------------------------------')
 
 pbar = tqdm.trange(args.exp_len)
@@ -133,9 +136,12 @@ for i in pbar:
 
         desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y.item():.3f}]'
     else:
-        # TODO update reward model; with schedule
-        new_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 3)
-        model_pref = model_pref.condition_on_observations(new_train_pref)
+        # expert_random_prob of the time, sample preference data
+        # and update the expert surrogate
+        if np.random.rand() <= args.expert_prob:
+            # TODO more intelligent sampling, e.g. via active learning
+            new_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 3)
+            model_pref = model_pref.condition_on_observations(new_train_pref)
 
         with torch.no_grad():
             ins = torch.cat([best_x, new_x], dim=0)  # (2, dim)
@@ -173,7 +179,7 @@ if not args.with_expert:
     np.save(f'{path}/trace-best-y_{args.randseed}.npy', trace_best_y)
 else:
     print(best_x.squeeze().numpy())
-    np.save(f'{path}/trace_best-y_gamma{args.expert_gamma}_rs{args.randseed}.npy', trace_best_y)
-    np.save(f'{path}/trace_best-r_gamma{args.expert_gamma}_rs{args.randseed}.npy', trace_best_r)
-    np.save(f'{path}/trace_best-scal-y_gamma{args.expert_gamma}_rs{args.randseed}.npy', trace_best_scal_y)
-    np.save(f'{path}/best-x_rs{args.randseed}.npy', best_x.squeeze().numpy())
+    np.save(f'{path}/trace_best-y_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_y)
+    np.save(f'{path}/trace_best-r_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_r)
+    np.save(f'{path}/trace_best-scal-y_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_scal_y)
+    np.save(f'{path}/best-x_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', best_x.squeeze().numpy())
