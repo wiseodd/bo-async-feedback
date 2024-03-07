@@ -24,11 +24,12 @@ PROBLEM2TITLE = {
     'rastrigin10': r'Rastrigin-10',
 }
 METHODS_BASE = ['gp', 'la']
-METHODS_PREF = ['la']
+METHODS_PREF = ['gp', 'la']
 METHOD2LABEL = {
     'gp': 'GP',
     'la': 'LA',
-    'la-pref': 'LA-Pref'
+    'gp-pref': 'GP-Pref',
+    'la-pref': 'LA-Pref',
 }
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 METHOD2COLOR = {k: v for k, v in zip(METHOD2LABEL.keys(), colors)}
@@ -57,10 +58,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     for method in METHODS_BASE:
         path = f'results/toy/{problem}/{method}'
 
-        try:
-            trace_best_y = np.stack([np.load(f'{path}/trace_best_y_{rs}.npy') for rs in RANDSEEDS])
-        except FileNotFoundError:
-            continue
+        trace_best_y = np.stack([np.load(f'{path}/trace_best-y_rs{rs}.npy') for rs in RANDSEEDS])
 
         mean = np.mean(trace_best_y, axis=0)  # Over randseeds
         sem = st.sem(trace_best_y, axis=0)  # Over randseeds
@@ -76,39 +74,25 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         )
 
     # Plot BO methods with preferences
+    # if problem in ['ackley10', 'levy10', 'hartmann6']:
     for method_pref in METHODS_PREF:
-        path = f'results/toy/{problem}-pref/{method}'
+        path = f'results/toy/{problem}-pref/{method_pref}'
 
-        try:
-            trace_best_y = np.stack([np.load(f'{path}/trace_best_y_{rs}.npy') for rs in RANDSEEDS])
-            trace_best_y_pref = np.stack([np.load(f'{path}/trace_best_r_{rs}.npy') for rs in RANDSEEDS])
-            trace_best_y_scal = np.stack([np.load(f'{path}/trace_best_scal_y_{rs}.npy') for rs in RANDSEEDS])
-        except FileNotFoundError:
-            continue
+        trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_rs{rs}.npy') for rs in RANDSEEDS])
+        trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_rs{rs}.npy') for rs in RANDSEEDS])
+        trace_best_y_scal = np.stack([np.load(f'{path}/trace_best-scal-y_gamma1.0_rs{rs}.npy') for rs in RANDSEEDS])
 
         # f(x)
         mean = np.mean(trace_best_y, axis=0)  # Over randseeds
         sem = st.sem(trace_best_y, axis=0)  # Over randseeds
         T = np.arange(len(mean)) + 1
         ax.plot(
-            T, mean, color=METHOD2COLOR[f'{method}-pref'],
-            label=METHOD2LABEL[f'{method}-pref']
+            T, mean, color=METHOD2COLOR[f'{method_pref}-pref'],
+            label=METHOD2LABEL[f'{method_pref}-pref']
         )
         ax.fill_between(
             T, mean-sem, mean+sem,
-            color=METHOD2COLOR[f'{method}-pref'], alpha=0.25
-        )
-
-        # Preference
-        mean = np.mean(trace_best_y_pref, axis=0)
-        sem = st.sem(trace_best_y_pref, axis=0)
-        ax.plot(
-            T, mean, color=METHOD2COLOR[f'{method}-pref'],
-            label=METHOD2LABEL[f'{method}-pref'], ls='dashed'
-        )
-        ax.fill_between(
-            T, mean-sem, mean+sem,
-            color=METHOD2COLOR[f'{method}-pref'], alpha=0.25
+            color=METHOD2COLOR[f'{method_pref}-pref'], alpha=0.25
         )
 
     title = f'{PROBLEM2TITLE[problem]}'
@@ -118,7 +102,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     if i == 0:  # Only the left-most
         ax.set_ylabel(r'$f(x_*)$')
 
-    ax.set_xlim(0, len(mean))
+    ax.set_xlim(0, 250)
 
     # handles, labels = ax.get_legend_handles_labels()
     if i == 0:

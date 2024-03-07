@@ -133,6 +133,9 @@ class PrefLaplaceBoTorch(botorch_model.Model):
         # Q is the num. of x's predicted jointly
         # D is the feature size
         # K is the output size, i.e. num of tasks
+        assert len(X.shape) == 2 or len(X.shape) == 3, 'X must be a 2- or 3-dim tensor'
+        if len(X.shape) == 2:
+            X = X.unsqueeze(1)
 
         # Transform to `(B*Q, D)`
         B, Q, D = X.shape
@@ -274,7 +277,7 @@ class PrefLaplaceBoTorch(botorch_model.Model):
             mean_sq_metric = tm.MeanMetric()
 
             for data in train_loader:
-                out = net(data).flatten()  # (batch_size*2,)
+                out = net(data)  # (batch_size*2,)
                 mean_metric(out)
                 mean_sq_metric(out**2)
 

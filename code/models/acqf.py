@@ -7,7 +7,7 @@ from botorch.models.model import Model, ModelList
 from typing import Optional, List
 
 
-class TSWithExpertPref(AnalyticAcquisitionFunction):
+class ThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
     """
     Scalarized Thompson sampling acquisition function with expert preferences.
 

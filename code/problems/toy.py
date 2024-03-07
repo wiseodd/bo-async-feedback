@@ -14,11 +14,12 @@ class Problem:
 
     is_maximize: bool
     """
-    def __init__(self, dim, bounds, is_maximize):
+    def __init__(self, dim, is_maximize):
         self.dim = dim
-        self.bounds = bounds
         self.is_maximize = is_maximize
-        self.optimal_value = self.get_function().optimal_value
+        self.bounds = torch.tensor(self.get_function()._bounds).T  # (2, dim)
+        self.optimal_f = self.get_function().optimal_value
+        self.optimal_x = self.get_function().optimizers[0]
 
     def get_function(self):
         """
@@ -46,95 +47,76 @@ class Problem:
         label: int
             Either 0 or 1, depending which x's is preferred
         """
-        def score(x):
-            return -torch.linalg.norm(x - torch.tensor(self.preferred_x, device=x.device).float())
+        return np.argmax([self._score(x_0), self._score(x_1)])
 
-        return np.argmax([score(x_0), score(x_1)])
 
-    @property
-    def preferred_x(self):
-        """
-        Returns:
-        --------
-        preferred_x: List[float]
-            Length equals self.dim
-        """
+    def _score(self, x):
         raise NotImplementedError
 
 
 class Ackley2(Problem):
     def __init__(self):
         dim = 2
-        bounds = torch.tensor(dim*[[-32.768, 32.768]]).T
         is_maximize = False
-        super().__init__(dim, bounds, is_maximize)
+        super().__init__(dim, is_maximize)
 
     def get_function(self):
-        return Ackley(dim=self.dim, bounds=self.bounds.T)
+        return Ackley(dim=self.dim)
 
-    @property
-    def preferred_x(self):
-        return self.dim*[10.]
+    def _score(self, x):
+        return -torch.linalg.norm(x - self.optimal_x)**2
 
 
 class Ackley10(Problem):
     def __init__(self):
         dim = 10
-        bounds = torch.tensor(dim*[[-32.768, 32.768]]).T
         is_maximize = False
-        super().__init__(dim, bounds, is_maximize)
+        super().__init__(dim, is_maximize)
 
     def get_function(self):
-        return Ackley(dim=self.dim, bounds=self.bounds.T)
+        return Ackley(dim=self.dim)
 
-    @property
-    def preferred_x(self):
-        return self.dim*[5.]
+    def _score(self, x):
+        return -torch.linalg.norm(x - self.optimal_x)**2
 
 
 class Hartmann6(Problem):
     def __init__(self):
         dim = 6
-        bounds = torch.tensor(dim*[[0., 1.]]).T
         is_maximize = False
-        super().__init__(dim, bounds, is_maximize)
+        super().__init__(dim, is_maximize)
 
     def get_function(self):
-        return Hartmann(dim=self.dim, bounds=self.bounds.T)
+        return Hartmann(dim=self.dim)
 
-    @property
-    def preferred_x(self):
-        return self.dim*[0.]
+    def _score(self, x):
+        return -torch.linalg.norm(x - self.optimal_x)**2
 
 
 class Levy10(Problem):
     def __init__(self):
         dim = 10
-        bounds = torch.tensor(dim*[[-10., 10.]]).T
         is_maximize = False
-        super().__init__(dim, bounds, is_maximize)
+        super().__init__(dim, is_maximize)
 
     def get_function(self):
-        return Levy(dim=self.dim, bounds=self.bounds.T)
+        return Levy(dim=self.dim)
 
-    @property
-    def preferred_x(self):
-        return self.dim*[0.]
+    def _score(self, x):
+        return -torch.linalg.norm(x - self.optimal_x)**2
 
 
 class Rastrigin10(Problem):
     def __init__(self):
         dim = 10
-        bounds = torch.tensor(dim*[[-5.12, 5.12]]).T
         is_maximize = False
-        super().__init__(dim, bounds, is_maximize)
+        super().__init__(dim, is_maximize)
 
     def get_function(self):
-        return Rastrigin(dim=self.dim, bounds=self.bounds.T)
+        return Rastrigin(dim=self.dim)
 
-    @property
-    def preferred_x(self):
-        return self.dim*[-3.]
+    def _score(self, x):
+        return -torch.linalg.norm(x - self.optimal_x)**2
 
 
 PROBLEM_LIST = {
@@ -147,9 +129,9 @@ PROBLEM_LIST = {
 
 
 if __name__ == '__main__':
-    problem = Hartmann6()
-    f = problem.get_function()
-    print(f(torch.tensor(problem.dim*[0.]).float()), f.optimal_value)
+    problem = Levy10()
+    print(problem.bounds.shape)
+    print(problem.optimal_x, problem.optimal_f)
 
     for _ in range(10):
         x0, x1 = torch.randn(problem.dim), torch.randn(problem.dim)

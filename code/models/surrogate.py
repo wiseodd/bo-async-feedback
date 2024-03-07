@@ -51,11 +51,12 @@ class MLLGP(SingleTaskGP):
             lr: float = 0.01,
             n_epochs: int = 500,
     ):
+        self.orig_train_X = train_X
+        self.orig_train_Y = train_Y
         super().__init__(
             train_X=train_X, train_Y=train_Y,
             likelihood=likelihood, covar_module=kernel
         )
-
         self.kernel = kernel
         self.lr = lr
         self.n_epochs = n_epochs

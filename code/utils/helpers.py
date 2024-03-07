@@ -4,7 +4,15 @@ import itertools
 import numpy as np
 from collections import UserDict
 import torchmetrics as tm
+from botorch.models.transforms.outcome import Standardize
 
+
+def y_transform(new_y, train_Y):
+    trf = Standardize(1)
+    trf.train()
+    trf(train_Y)  # Fit
+    trf.eval()
+    return trf(new_y)[0]
 
 def sample_x(num_points, bounds):
     """
