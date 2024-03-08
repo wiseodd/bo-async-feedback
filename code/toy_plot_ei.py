@@ -16,17 +16,19 @@ import problems.toy as toy_problems
 parser = argparse.ArgumentParser()
 args = parser.parse_args()
 
-PROBLEMS = ['ackley10-pref', 'hartmann6-pref', 'levy10-pref', 'rastrigin10-pref']
+PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
 PROBLEM2TITLE = {
-    'ackley10-pref': r'Ackley-10-Pref',
-    'hartmann6-pref': r'Hartmann-6-Pref',
-    'levy10-pref': r'Lévy-10-Pref',
-    'rastrigin10-pref': r'Rastrigin-10-Pref',
+    'ackley10': r'Ackley-10',
+    'hartmann6': r'Hartmann-6',
+    'levy10': r'Lévy-10',
+    'rastrigin10': r'Rastrigin-10',
 }
-METHODS = ['la']
+METHODS_BASE = ['gp', 'la']
 METHOD2LABEL = {
-    'gp': 'GP',
-    'la': 'LA'
+    'gp': 'GP-TS',
+    'la': 'LA-TS',
+    'gp-ei': 'GP-EI',
+    'la-ei': 'LA-EI',
 }
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 METHOD2COLOR = {k: v for k, v in zip(METHOD2LABEL.keys(), colors)}
@@ -45,33 +47,36 @@ fig, axs = plt.subplots(1, len(PROBLEMS), sharex=True, constrained_layout=True)
 fig.set_size_inches(fig_width, fig_height)
 
 for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
-    problem_obj = toy_problems.PROBLEM_LIST[problem[:-5]]()
+    problem_obj = toy_problems.PROBLEM_LIST[problem]()
 
-    # Plot optimal val
+    # Plot optimal val for f(x)
     best_val = problem_obj.get_function().optimal_value
     ax.axhline(best_val, c='k', ls='dashed', zorder=1000)
 
-    # Plot methods
-    for method in METHODS:
-        path = f'results/toy/{problem}/{method}'
+    # Plot base BO methods
+    for method in METHODS_BASE:
+        for acqf in ['ts', 'ei']:
+            path = f'results/toy/{problem}/{method}'
+            if acqf == 'ts':
+                fname = f'trace_best-y_rs'
+            else:
+                fname = f'trace_best-y_ei_rs'
 
-        try:
-            trace_best_y = np.stack([np.load(f'{path}/trace_best_y_{rs}.npy') for rs in RANDSEEDS])
-        except FileNotFoundError:
-            continue
+            trace_best_y = np.stack([np.load(f'{path}/{fname}{rs}.npy') for rs in RANDSEEDS])
 
-        mean = np.mean(trace_best_y, axis=0)  # Over randseeds
-        sem = st.sem(trace_best_y, axis=0)  # Over randseeds
-        T = np.arange(len(mean)) + 1
+            mean = np.mean(trace_best_y, axis=0)  # Over randseeds
+            sem = st.sem(trace_best_y, axis=0)  # Over randseeds
+            T = np.arange(len(mean)) + 1
 
-        ax.plot(
-            T, mean, color=METHOD2COLOR[method],
-            label=f'{METHOD2LABEL[method]}'
-        )
-        ax.fill_between(
-            T, mean-sem, mean+sem,
-            color=METHOD2COLOR[method], alpha=0.25
-        )
+            acqf_name = '' if acqf == 'ts' else '-ei'
+            ax.plot(
+                T, mean, color=METHOD2COLOR[method+acqf_name],
+                label=f'{METHOD2LABEL[method+acqf_name]}'
+            )
+            ax.fill_between(
+                T, mean-sem, mean+sem,
+                color=METHOD2COLOR[method+acqf_name], alpha=0.25
+            )
 
     title = f'{PROBLEM2TITLE[problem]}'
     ax.set_title(title)
@@ -80,7 +85,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     if i == 0:  # Only the left-most
         ax.set_ylabel(r'$f(x_*)$')
 
-    ax.set_xlim(0, len(mean))
+    ax.set_xlim(0, 250)
 
     # handles, labels = ax.get_legend_handles_labels()
     if i == 0:
@@ -95,5 +100,5 @@ path = f'../paper/figs'
 if not os.path.exists(path):
     os.makedirs(path)
 
-fname = f'toy_bo-pref'
+fname = f'ts_vs_ei'
 plt.savefig(f'{path}/{fname}.pdf')

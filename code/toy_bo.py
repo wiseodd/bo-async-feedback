@@ -184,9 +184,9 @@ if not os.path.exists(path):
 
 if not args.with_expert:
     if args.acqf == 'ts':
-        np.save(f'{path}/trace-best-y_{args.randseed}.npy', trace_best_y)
+        np.save(f'{path}/trace_best-y_rs{args.randseed}.npy', trace_best_y)
     elif args.acqf == 'ei':
-        np.save(f'{path}/trace-best-y_ei_{args.randseed}.npy', trace_best_y)
+        np.save(f'{path}/trace_best-y_ei_rs{args.randseed}.npy', trace_best_y)
 else:
     print(best_x.squeeze().numpy())
     np.save(f'{path}/trace_best-y_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_y)
