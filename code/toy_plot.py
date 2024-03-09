@@ -14,6 +14,7 @@ import pprint
 import problems.toy as toy_problems
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--expert_prob', type=float, default=0.25)
 args = parser.parse_args()
 
 PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
@@ -24,7 +25,10 @@ PROBLEM2TITLE = {
     'rastrigin10': r'Rastrigin-10',
 }
 METHODS_BASE = ['gp', 'la']
-METHODS_PREF = ['gp', 'la']
+METHODS_PREF = [
+    'gp',
+    'la'
+]
 METHOD2LABEL = {
     'gp': 'GP',
     'la': 'LA',
@@ -78,9 +82,9 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     for method_pref in METHODS_PREF:
         path = f'results/toy/{problem}-pref/{method_pref}'
 
-        trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_prob0.25_rs{rs}.npy') for rs in RANDSEEDS])
-        trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_prob0.25_rs{rs}.npy') for rs in RANDSEEDS])
-        trace_best_y_scal = np.stack([np.load(f'{path}/trace_best-scal-y_gamma1.0_prob0.25_rs{rs}.npy') for rs in RANDSEEDS])
+        trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
+        trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
+        trace_best_y_scal = np.stack([np.load(f'{path}/trace_best-scal-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
 
         # f(x)
         mean = np.mean(trace_best_y, axis=0)  # Over randseeds
@@ -118,5 +122,5 @@ path = f'../paper/figs'
 if not os.path.exists(path):
     os.makedirs(path)
 
-fname = f'toy_bo'
+fname = f'toy_bo_prob{args.expert_prob}'
 plt.savefig(f'{path}/{fname}.pdf')
