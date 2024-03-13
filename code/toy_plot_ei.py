@@ -18,15 +18,15 @@ args = parser.parse_args()
 
 PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
 PROBLEM2TITLE = {
-    'ackley10': r'Ackley-10',
-    'hartmann6': r'Hartmann-6',
-    'levy10': r'Lévy-10',
-    'rastrigin10': r'Rastrigin-10',
+    'ackley10': r'Ackley $d = 10$ ($\downarrow$)',
+    'hartmann6': r'Hartmann $d = 6$ ($\downarrow$)',
+    'levy10': r'Lévy $d = 10$ ($\downarrow$)',
+    'rastrigin10': r'Rastrigin $d = 10$ ($\downarrow$)',
 }
 METHODS_BASE = ['gp', 'la']
 METHOD2LABEL = {
-    'gp': 'GP-TS',
-    'la': 'LA-TS',
+    'gp': 'GP',
+    'la': 'LA',
     'gp-ei': 'GP-EI',
     'la-ei': 'LA-EI',
 }
@@ -55,7 +55,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 
     # Plot base BO methods
     for method in METHODS_BASE:
-        for acqf in ['ts', 'ei']:
+        for acqf in ['ts']:
             path = f'results/toy/{problem}/{method}'
             if acqf == 'ts':
                 fname = f'trace_best-y_rs'

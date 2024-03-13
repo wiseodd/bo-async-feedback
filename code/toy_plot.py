@@ -15,13 +15,17 @@ import problems.toy as toy_problems
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--expert_prob', type=float, default=0.25)
+parser.add_argument('--layout', default='aabi', choices=['aabi', 'neurips'])
 args = parser.parse_args()
+
+if args.layout == 'aabi':
+    args.layout = 'jmlr'
 
 PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
 PROBLEM2TITLE = {
     'ackley10': r'Ackley-10',
     'hartmann6': r'Hartmann-6',
-    'levy10': r'Lévy-10',
+    'levy10': r'Levy-10',
     'rastrigin10': r'Rastrigin-10',
 }
 METHODS_BASE = ['gp', 'la']
@@ -44,7 +48,8 @@ FIG_WIDTH = 1
 FIG_HEIGHT = 0.2
 rc_params, fig_width, fig_height = plot_utils.get_mpl_rcParams(
     FIG_WIDTH, FIG_HEIGHT,
-    single_col=False
+    single_col=False,
+    layout=args.layout
 )
 plt.rcParams.update(rc_params)
 
@@ -118,7 +123,11 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 # fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0, 1.065, 1, 0.005), mode='expand', ncols=8)
 
 # Save results
-path = f'../paper/figs'
+if args.layout == 'neurips':
+    path = f'../paper/figs'
+else:
+    path = f'../paper/aabi/figs'
+
 if not os.path.exists(path):
     os.makedirs(path)
 

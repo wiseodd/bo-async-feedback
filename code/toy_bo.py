@@ -7,7 +7,7 @@ import tqdm
 from botorch.optim.optimize import optimize_acqf
 from botorch.acquisition.analytic import ExpectedImprovement
 
-from laplace.curvature import AsdlGGN
+from laplace.curvature import CurvlinopsGGN, AsdlGGN
 from laplace_bayesopt.botorch import LaplaceBoTorch
 from laplace_bayesopt.acqf import ThompsonSampling
 
@@ -61,7 +61,7 @@ if args.method == 'la':
         return MLP(problem.dim, normalize_output=True)
     model = LaplaceBoTorch(
         get_net, train_x, train_y, noise_var=1e-4, batch_size=1024,
-        backend=AsdlGGN, device=args.device
+        backend=CurvlinopsGGN, device=args.device
     )
 elif args.method == 'gp':
     # Hotfix for a numerical issue (not PSD error)
