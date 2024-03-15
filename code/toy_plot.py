@@ -16,6 +16,7 @@ import problems.toy as toy_problems
 parser = argparse.ArgumentParser()
 parser.add_argument('--expert_prob', type=float, default=0.25)
 parser.add_argument('--layout', default='aabi', choices=['aabi', 'neurips'])
+parser.add_argument('--no_legend', default=False, action='store_true')
 args = parser.parse_args()
 
 if args.layout == 'aabi':
@@ -115,7 +116,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     ax.set_xlim(0, 250)
 
     # handles, labels = ax.get_legend_handles_labels()
-    if i == 0:
+    if i == 0 and not args.no_legend:
         ax.legend(
             loc='best', title='Methods'
         )
@@ -126,7 +127,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 if args.layout == 'neurips':
     path = f'../paper/figs'
 else:
-    path = f'../paper/aabi/figs'
+    path = f'../paper/aabi/figs_aabi'
 
 if not os.path.exists(path):
     os.makedirs(path)
