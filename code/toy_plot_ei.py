@@ -14,13 +14,17 @@ import pprint
 import problems.toy as toy_problems
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--layout', default='aabi', choices=['aabi', 'neurips'])
 args = parser.parse_args()
+
+if args.layout == 'aabi':
+    args.layout = 'jmlr'
 
 PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
 PROBLEM2TITLE = {
     'ackley10': r'Ackley $d = 10$ ($\downarrow$)',
     'hartmann6': r'Hartmann $d = 6$ ($\downarrow$)',
-    'levy10': r'Lévy $d = 10$ ($\downarrow$)',
+    'levy10': r'Levy $d = 10$ ($\downarrow$)',
     'rastrigin10': r'Rastrigin $d = 10$ ($\downarrow$)',
 }
 METHODS_BASE = ['gp', 'la']
@@ -39,7 +43,8 @@ FIG_WIDTH = 1
 FIG_HEIGHT = 0.2
 rc_params, fig_width, fig_height = plot_utils.get_mpl_rcParams(
     FIG_WIDTH, FIG_HEIGHT,
-    single_col=False
+    single_col=False,
+    layout=args.layout
 )
 plt.rcParams.update(rc_params)
 
@@ -96,7 +101,11 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 # fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0, 1.065, 1, 0.005), mode='expand', ncols=8)
 
 # Save results
-path = f'../paper/figs'
+if args.layout == 'neurips':
+    path = f'../paper/figs'
+else:
+    path = f'../paper/aabi/figs_aabi'
+
 if not os.path.exists(path):
     os.makedirs(path)
 

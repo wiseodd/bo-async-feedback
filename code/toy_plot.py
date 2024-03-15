@@ -24,10 +24,10 @@ if args.layout == 'aabi':
 
 PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
 PROBLEM2TITLE = {
-    'ackley10': r'Ackley-10',
-    'hartmann6': r'Hartmann-6',
-    'levy10': r'Levy-10',
-    'rastrigin10': r'Rastrigin-10',
+    'ackley10': r'Ackley $d = 10$ ($\downarrow$)',
+    'hartmann6': r'Hartmann $d = 6$ ($\downarrow$)',
+    'levy10': r'Levy $d = 10$ ($\downarrow$)',
+    'rastrigin10': r'Rastrigin $d = 10$ ($\downarrow$)',
 }
 METHODS_BASE = ['gp', 'la']
 METHODS_PREF = [
