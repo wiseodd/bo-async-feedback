@@ -59,10 +59,10 @@ def sample_pair_idxs(source, num_samples):
     idx_pairs = itertools.permutations(range(len(source)), 2)
     idx_pairs = list(idx_pairs)
     np.random.shuffle(idx_pairs)
-    return np.array(idx_pairs[:num_samples])  # (num_samples, 2)
+    return idx_pairs[:num_samples]  # (num_samples, 2)
 
 
-def sample_pref_data(source, pref_func, num_samples):
+def sample_pref_data(source, pref_func, num_samples, exclude_indices=[], output_indices=False):
     """
     Sample preference data list (x_0, x_1, label) from source.
     The label is obtained by calling `pref_func(x_0, x_1)`.
@@ -78,6 +78,9 @@ def sample_pref_data(source, pref_func, num_samples):
     num_samples: int
         Must be < len(source) and > 0
 
+    exclude_indices: np.array of ints with shape (n, 2), default=[]
+        If a sampled pair idxs is in this array, then skip.
+
     Returns:
     --------
     data_pref: UserDict
@@ -91,18 +94,32 @@ def sample_pref_data(source, pref_func, num_samples):
         ```
     """
     idx_pairs = sample_pair_idxs(source, num_samples)
+    # exclude_idxs_lst = exclude_indices.tolist()
     x_0s, x_1s, labels = [], [], []
+    idx_pairs_excluded = []
+
+    # print(len(idx_pairs))
+
     for idx_pair in idx_pairs:
+        print(idx_pair in exclude_indices)
+        if idx_pair in exclude_indices:
+            continue
+
         x_0, x_1 = source[idx_pair[0]].unsqueeze(0), source[idx_pair[1]].unsqueeze(0)
         x_0s.append(x_0)
         x_1s.append(x_1)
         labels.append(torch.tensor(pref_func(x_0, x_1)).long().reshape(1,))
+        idx_pairs_excluded.append(idx_pair)
 
-    return UserDict({
+    data_pref = UserDict({
         'x_0': torch.cat(x_0s, dim=0),
         'x_1': torch.cat(x_1s, dim=0),
         'labels': torch.cat(labels, dim=0)
     })
+
+    print(len(x_0s)); input()
+
+    return (data_pref, idx_pairs_excluded) if output_indices else data_pref
 
 
 def subset_pref_data(pref_data: UserDict, subset_idxs: Iterable[int] | torch.LongTensor):

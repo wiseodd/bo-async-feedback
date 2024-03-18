@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for prob in levy10 rastrigin10 hartmann6;
+for prob in ackley10 levy10 rastrigin10 hartmann6;
 do
     for rs in 1 2 3 4 5;
     do

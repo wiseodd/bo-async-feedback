@@ -75,7 +75,10 @@ elif args.method == 'gp':
 #################################################################################################
 if args.with_expert:
     # Gather initial preference dataset
-    train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 20)
+    train_pref, train_pair_idxs = helpers.sample_pref_data(
+        model.orig_train_X, problem.get_preference, 20,
+        output_indices=True
+    )
 
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
@@ -153,13 +156,10 @@ for i in pbar:
             elif args.acqf_pref == 'active':
                 # Randomly sample pairs to make the cost constant wrt. the size of X.
                 # Because, the num. of ordered pairs of X with size N is (N choose 2).
-                rand_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 2000)
-                # Remove already selected pairs
-                new_idxs = []
-                for idx, (x0, x1) in enumerate(zip(rand_train_pref['x_0'], rand_train_pref['x_1'])):
-                    if not helpers.is_pair_selected(x0, x1, model_pref.train_data):
-                        new_idxs.append(idx)
-                rand_train_pref = helpers.subset_pref_data(rand_train_pref, new_idxs)
+                rand_train_pref, rand_idxs = helpers.sample_pref_data(
+                    model.orig_train_X, problem.get_preference, 2000,
+                    exclude_indices=train_pair_idxs, output_indices=True
+                )
                 # Get the active learning acqf. vals.
                 with torch.no_grad():
                     acqf = ThompsonSamplingForRewardModel(model_pref)
@@ -167,6 +167,8 @@ for i in pbar:
                 # Get the top N_NEW_PREF_DATA
                 topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA)[1]
                 new_train_pref = helpers.subset_pref_data(rand_train_pref, topk_idxs)
+                # Track the pair indices of the preference training data
+                train_pair_idxs += rand_idxs[topk_idxs]
 
             model_pref = model_pref.condition_on_observations(new_train_pref)
 
