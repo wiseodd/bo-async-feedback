@@ -15,7 +15,7 @@ import problems.toy as toy_problems
 from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch
 from models.reward import ToyRewardModel
-from models.acqf import ThompsonSamplingWithExpertPref
+from models.acqf import ThompsonSamplingWithExpertPref, ThompsonSamplingForRewardModel
 from utils import helpers
 
 from collections import UserDict
@@ -28,6 +28,7 @@ parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=250)
 parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
+parser.add_argument('--acqf_pref', default='random', choices=['random', 'active'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
 parser.add_argument('--expert_prob', type=float, default=0.25)
@@ -102,8 +103,8 @@ if args.with_expert:
     trace_best_scal_y = []
 
 print()
-print(f'Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, gamma: {args.expert_gamma}, prob: {args.expert_prob}, randseed: {args.randseed}')
-print('--------------------------------------------------------------------------------')
+print(f'Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, gamma: {args.expert_gamma}, prob: {args.expert_prob}, acqf_pref: {args.acqf_pref}, randseed: {args.randseed}')
+print('----------------------------------------------------------------------------------------------------------')
 
 pbar = tqdm.trange(args.exp_len)
 pbar.set_description(
@@ -143,11 +144,30 @@ for i in pbar:
 
         desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y.item():.3f}]'
     else:
-        # expert_random_prob of the time, sample preference data
+        # `expert_random_prob` of the time, sample preference data
         # and update the expert surrogate
         if np.random.rand() <= args.expert_prob:
-            # TODO more intelligent sampling, e.g. via active learning
-            new_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 3)
+            N_NEW_PREF_DATA = 3
+            if args.acqf_pref == 'random':
+                new_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, N_NEW_PREF_DATA)
+            elif args.acqf_pref == 'active':
+                # Randomly sample pairs to make the cost constant wrt. the size of X.
+                # Because, the num. of ordered pairs of X with size N is (N choose 2).
+                rand_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, 2000)
+                # Remove already selected pairs
+                new_idxs = []
+                for idx, (x0, x1) in enumerate(zip(rand_train_pref['x_0'], rand_train_pref['x_1'])):
+                    if not helpers.is_pair_selected(x0, x1, model_pref.train_data):
+                        new_idxs.append(idx)
+                rand_train_pref = helpers.subset_pref_data(rand_train_pref, new_idxs)
+                # Get the active learning acqf. vals.
+                with torch.no_grad():
+                    acqf = ThompsonSamplingForRewardModel(model_pref)
+                    acq_vals = acqf(rand_train_pref)
+                # Get the top N_NEW_PREF_DATA
+                topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA)[1]
+                new_train_pref = helpers.subset_pref_data(rand_train_pref, topk_idxs)
+
             model_pref = model_pref.condition_on_observations(new_train_pref)
 
         with torch.no_grad():
@@ -179,6 +199,7 @@ for i in pbar:
 # Save results
 problem_name = args.problem + ('-pref' if args.with_expert else '')
 path = f'results/toy/{problem_name}/{args.method}'
+path += '/active' if args.acqf_pref == 'active' else ''
 if not os.path.exists(path):
     os.makedirs(path)
 
@@ -189,7 +210,12 @@ if not args.with_expert:
         np.save(f'{path}/trace_best-y_ei_rs{args.randseed}.npy', trace_best_y)
 else:
     print(best_x.squeeze().numpy())
-    np.save(f'{path}/trace_best-y_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_y)
-    np.save(f'{path}/trace_best-r_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_r)
-    np.save(f'{path}/trace_best-scal-y_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', trace_best_scal_y)
-    np.save(f'{path}/best-x_gamma{args.expert_gamma}_prob{args.expert_prob}_rs{args.randseed}.npy', best_x.squeeze().numpy())
+
+    def args_to_name():
+        name = f'gamma{args.expert_gamma}_prob{args.expert_prob}'
+        return name
+
+    np.save(f'{path}/trace_best-y_{args_to_name()}_rs{args.randseed}.npy', trace_best_y)
+    np.save(f'{path}/trace_best-r_{args_to_name()}_rs{args.randseed}.npy', trace_best_r)
+    np.save(f'{path}/trace_best-scal-y_{args_to_name()}_rs{args.randseed}.npy', trace_best_scal_y)
+    np.save(f'{path}/best-x_{args_to_name()}_rs{args.randseed}.npy', best_x.squeeze().numpy())

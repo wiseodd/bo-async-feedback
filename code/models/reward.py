@@ -24,7 +24,10 @@ class ToyRewardModel(nn.Module):
             Else torch.Tensor of shape (batch_size, dim)
         """
         if isinstance(data, UserDict):
+            device = next(self.parameters()).device
             x_0, x_1 = data['x_0'], data['x_1']
+            x_0.to(device)
+            x_1.to(device)
 
             # (batch_size, dim+1)
             inputs = torch.stack([x_0, x_1], dim=1)  # (batch_size, 2, dim+1)
@@ -39,7 +42,6 @@ class ToyRewardModel(nn.Module):
             out = out / getattr(self, 'f_std')
 
             return out
-
 
 
 class ToyRewardModelWithOutput(nn.Module):

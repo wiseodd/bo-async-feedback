@@ -18,7 +18,7 @@ import math
 from collections import UserDict
 import torchmetrics as tm
 
-from utils.data import ListDataset
+from utils.data import RewardDataset, reward_data_collator
 
 
 class PrefLaplaceBoTorch(botorch_model.Model):
@@ -34,8 +34,8 @@ class PrefLaplaceBoTorch(botorch_model.Model):
         Prefer torch.nn.Sequential model due to BackPACK dependency.
         Example usage: `get_net=lambda: nn.Sequential(...)`.
 
-    train_data : List[Dict] or List[UserDict]
-        Training inputs and labels.
+    train_data : UserDict
+        Format `UserDict({'x_0': torch.Tensor, 'x_1': torch.Tensor, 'labels': torch.LongTensor})`.
 
     bnn : Laplace, optional, default=None
         When creating a new model from scratch, leave this at None.
@@ -77,7 +77,7 @@ class PrefLaplaceBoTorch(botorch_model.Model):
     def __init__(
         self,
         get_net: Callable[[], nn.Module],
-        train_data: List[Dict] | List[UserDict],
+        train_data: UserDict,
         bnn: Laplace = None,
         noise_var: float | None =  None,
         last_layer: bool = False,
@@ -164,9 +164,11 @@ class PrefLaplaceBoTorch(botorch_model.Model):
         return post_pred
 
 
-    def condition_on_observations(self, data: List[Dict] | List[UserDict], **kwargs: Any) -> PrefLaplaceBoTorch:
+    def condition_on_observations(self, data: UserDict, **kwargs: Any) -> PrefLaplaceBoTorch:
         # Append new observation to the current data
-        self.train_data += data
+        self.train_data['x_0'] = torch.cat([self.train_data['x_0'], data['x_0']], dim=0)
+        self.train_data['x_1'] = torch.cat([self.train_data['x_1'], data['x_1']], dim=0)
+        self.train_data['labels'] = torch.cat([self.train_data['labels'], data['labels']])
 
         # Update Laplace with the updated data
         train_loader = self._get_train_loader()
@@ -303,6 +305,7 @@ class PrefLaplaceBoTorch(botorch_model.Model):
 
     def _get_train_loader(self):
         return data_utils.DataLoader(
-            ListDataset(self.train_data),
-            batch_size=self.batch_size, shuffle=True
+            RewardDataset(self.train_data),
+            batch_size=self.batch_size, shuffle=True,
+            collate_fn=reward_data_collator
         )
