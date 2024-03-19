@@ -33,11 +33,16 @@ METHODS_PREF = [
     'gp',
     # 'la'
 ]
+AL_ACQFS = ['random', 'active_large_diff']
 METHOD2LABEL = {
-    'gp-rand': 'GP-Rand',
-    'la-rand': 'LA-Rand',
-    'gp-actv': 'GP-Actv',
-    'la-actv': 'LA-Actv',
+    'gp-random': 'GP-Rand',
+    'la-random': 'LA-Rand',
+    'gp-active_large_diff': 'GP-Actv',
+    'la-active_large_diff': 'LA-Actv',
+}
+ALACQF2LINESTYLE = {
+    'random': 'dashed',
+    'active_large_diff': 'solid',
 }
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 METHOD2COLOR = {k: v for k, v in zip(METHODS_PREF, colors)}
@@ -64,53 +69,30 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     ax.axhline(best_val, c='k', ls='dashed', zorder=1000)
 
     # Plot BO methods with preferences
-    if problem not in ['ackley10', 'levy10', 'rastrigin10']:
+    if problem not in ['ackley10']:
         continue
 
     for method_pref in METHODS_PREF:
-        # Random
-        # --------------
-        path = f'results/toy/{problem}-pref/{method_pref}'
+        for al_acqf in AL_ACQFS:
+            path = f'results/toy/{problem}-pref/{al_acqf}/{method_pref}'
 
-        trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
-        trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
-        trace_best_y_scal = np.stack([np.load(f'{path}/trace_best-scal-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
+            trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
+            trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
+            trace_best_y_scal = np.stack([np.load(f'{path}/trace_best-scal-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
 
-        # f(x)
-        mean = np.mean(trace_best_y, axis=0)  # Over randseeds
-        sem = st.sem(trace_best_y, axis=0)  # Over randseeds
-        T = np.arange(len(mean)) + 1
-        ax.plot(
-            T, mean, color=METHOD2COLOR[f'{method_pref}'],
-            label=METHOD2LABEL[f'{method_pref}-rand'],
-            linestyle='dashed'
-        )
-        ax.fill_between(
-            T, mean-sem, mean+sem,
-            color=METHOD2COLOR[f'{method_pref}'], alpha=0.15
-        )
-
-        # Active
-        # ---------------
-        path = f'results/toy/{problem}-pref/{method_pref}/active'
-
-        trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
-        trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
-        trace_best_y_scal = np.stack([np.load(f'{path}/trace_best-scal-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
-
-        # f(x)
-        mean = np.mean(trace_best_y, axis=0)  # Over randseeds
-        sem = st.sem(trace_best_y, axis=0)  # Over randseeds
-        T = np.arange(len(mean)) + 1
-        ax.plot(
-            T, mean, color=METHOD2COLOR[f'{method_pref}'],
-            label=METHOD2LABEL[f'{method_pref}-actv'],
-            linestyle='solid'
-        )
-        ax.fill_between(
-            T, mean-sem, mean+sem,
-            color=METHOD2COLOR[f'{method_pref}'], alpha=0.25
-        )
+            # f(x)
+            mean = np.mean(trace_best_y, axis=0)  # Over randseeds
+            sem = st.sem(trace_best_y, axis=0)  # Over randseeds
+            T = np.arange(len(mean)) + 1
+            ax.plot(
+                T, mean, color=METHOD2COLOR[f'{method_pref}'],
+                label=METHOD2LABEL[f'{method_pref}-{al_acqf}'],
+                linestyle=ALACQF2LINESTYLE[al_acqf]
+            )
+            ax.fill_between(
+                T, mean-sem, mean+sem,
+                color=METHOD2COLOR[f'{method_pref}'], alpha=0.2
+            )
 
     title = f'{PROBLEM2TITLE[problem]}'
     ax.set_title(title)

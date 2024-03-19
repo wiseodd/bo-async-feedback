@@ -78,8 +78,12 @@ def sample_pref_data(source, pref_func, num_samples, exclude_indices=[], output_
     num_samples: int
         Must be < len(source) and > 0
 
-    exclude_indices: np.array of ints with shape (n, 2), default=[]
+    exclude_indices: np.array of ints with shape (m, 2), default=[]
         If a sampled pair idxs is in this array, then skip.
+
+    output_indices: bool default = False
+        Whether to return the (n, 2) index array corresponding to
+        the `(x_0, x_1)` pairs.
 
     Returns:
     --------
@@ -92,16 +96,15 @@ def sample_pref_data(source, pref_func, num_samples, exclude_indices=[], output_
             'labels': torch.LongTensor(n,)
         })
         ```
+
+    indices: np.array of ints shape (n, 2), optional
+        When `output_indices = True`
     """
     idx_pairs = sample_pair_idxs(source, num_samples)
-    # exclude_idxs_lst = exclude_indices.tolist()
     x_0s, x_1s, labels = [], [], []
-    idx_pairs_excluded = []
-
-    # print(len(idx_pairs))
+    included_idxs = []
 
     for idx_pair in idx_pairs:
-        print(idx_pair in exclude_indices)
         if idx_pair in exclude_indices:
             continue
 
@@ -109,17 +112,16 @@ def sample_pref_data(source, pref_func, num_samples, exclude_indices=[], output_
         x_0s.append(x_0)
         x_1s.append(x_1)
         labels.append(torch.tensor(pref_func(x_0, x_1)).long().reshape(1,))
-        idx_pairs_excluded.append(idx_pair)
+        included_idxs.append(idx_pair)
 
     data_pref = UserDict({
         'x_0': torch.cat(x_0s, dim=0),
         'x_1': torch.cat(x_1s, dim=0),
         'labels': torch.cat(labels, dim=0)
     })
+    included_idxs = np.array(included_idxs)
 
-    print(len(x_0s)); input()
-
-    return (data_pref, idx_pairs_excluded) if output_indices else data_pref
+    return (data_pref, included_idxs) if output_indices else data_pref
 
 
 def subset_pref_data(pref_data: UserDict, subset_idxs: Iterable[int] | torch.LongTensor):

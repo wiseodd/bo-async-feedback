@@ -15,7 +15,7 @@ import problems.toy as toy_problems
 from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch
 from models.reward import ToyRewardModel
-from models.acqf import ThompsonSamplingWithExpertPref, ThompsonSamplingForRewardModel
+from models.acqf import *
 from utils import helpers
 
 from collections import UserDict
@@ -28,7 +28,7 @@ parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=250)
 parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
-parser.add_argument('--acqf_pref', default='random', choices=['random', 'active'])
+parser.add_argument('--acqf_pref', default='random', choices=['random', 'active_large_diff'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
 parser.add_argument('--expert_prob', type=float, default=0.25)
@@ -79,6 +79,7 @@ if args.with_expert:
         model.orig_train_X, problem.get_preference, 20,
         output_indices=True
     )
+    train_pair_idxs = list(map(tuple, train_pair_idxs))  # list of 2-tuples
 
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
@@ -153,22 +154,29 @@ for i in pbar:
             N_NEW_PREF_DATA = 3
             if args.acqf_pref == 'random':
                 new_train_pref = helpers.sample_pref_data(model.orig_train_X, problem.get_preference, N_NEW_PREF_DATA)
-            elif args.acqf_pref == 'active':
+            elif 'active' in args.acqf_pref:
                 # Randomly sample pairs to make the cost constant wrt. the size of X.
-                # Because, the num. of ordered pairs of X with size N is (N choose 2).
+                # Because, the num. of ordered pairs of X with size N is quadratic.
                 rand_train_pref, rand_idxs = helpers.sample_pref_data(
                     model.orig_train_X, problem.get_preference, 2000,
                     exclude_indices=train_pair_idxs, output_indices=True
                 )
+
                 # Get the active learning acqf. vals.
                 with torch.no_grad():
-                    acqf = ThompsonSamplingForRewardModel(model_pref)
+                    if args.acqf_pref == 'active_large_diff':
+                        acqf = ThompsonSamplingRewardDiffMaximization(model_pref)
+                    else:
+                        raise NotImplementedError()
+
                     acq_vals = acqf(rand_train_pref)
+
                 # Get the top N_NEW_PREF_DATA
                 topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA)[1]
                 new_train_pref = helpers.subset_pref_data(rand_train_pref, topk_idxs)
+
                 # Track the pair indices of the preference training data
-                train_pair_idxs += rand_idxs[topk_idxs]
+                train_pair_idxs += list(map(tuple, np.array(rand_idxs)[topk_idxs]))
 
             model_pref = model_pref.condition_on_observations(new_train_pref)
 
@@ -200,8 +208,7 @@ for i in pbar:
 
 # Save results
 problem_name = args.problem + ('-pref' if args.with_expert else '')
-path = f'results/toy/{problem_name}/{args.method}'
-path += '/active' if args.acqf_pref == 'active' else ''
+path = f'results/toy/{problem_name}/{args.acqf_pref}/{args.method}'
 if not os.path.exists(path):
     os.makedirs(path)
 
