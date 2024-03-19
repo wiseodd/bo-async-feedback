@@ -31,7 +31,7 @@ PROBLEM2TITLE = {
 }
 METHODS_PREF = [
     'gp',
-    # 'la'
+    'la'
 ]
 AL_ACQFS = ['random', 'active_large_diff']
 METHOD2LABEL = {
@@ -41,11 +41,11 @@ METHOD2LABEL = {
     'la-active_large_diff': 'LA-Actv',
 }
 ALACQF2LINESTYLE = {
-    'random': 'dashed',
+    'random': 'solid',
     'active_large_diff': 'solid',
 }
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-METHOD2COLOR = {k: v for k, v in zip(METHODS_PREF, colors)}
+METHOD2COLOR = {k: v for k, v in zip(METHOD2LABEL.keys(), colors)}
 RANDSEEDS = [1, 2, 3, 4, 5]
 
 
@@ -69,7 +69,8 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     ax.axhline(best_val, c='k', ls='dashed', zorder=1000)
 
     # Plot BO methods with preferences
-    if problem not in ['ackley10']:
+    if problem not in ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']:
+    # if problem not in ['ackley10', 'levy10', 'rastrigin10']:
         continue
 
     for method_pref in METHODS_PREF:
@@ -85,13 +86,13 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
             sem = st.sem(trace_best_y, axis=0)  # Over randseeds
             T = np.arange(len(mean)) + 1
             ax.plot(
-                T, mean, color=METHOD2COLOR[f'{method_pref}'],
+                T, mean, color=METHOD2COLOR[f'{method_pref}-{al_acqf}'],
                 label=METHOD2LABEL[f'{method_pref}-{al_acqf}'],
                 linestyle=ALACQF2LINESTYLE[al_acqf]
             )
             ax.fill_between(
                 T, mean-sem, mean+sem,
-                color=METHOD2COLOR[f'{method_pref}'], alpha=0.2
+                color=METHOD2COLOR[f'{method_pref}-{al_acqf}'], alpha=0.2
             )
 
     title = f'{PROBLEM2TITLE[problem]}'

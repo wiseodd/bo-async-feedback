@@ -76,7 +76,8 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 
         ax.plot(
             T, mean, color=METHOD2COLOR[method],
-            label=f'{METHOD2LABEL[method]}'
+            label=f'{METHOD2LABEL[method]}',
+            linestyle='dashed'
         )
         ax.fill_between(
             T, mean-sem, mean+sem,
@@ -86,7 +87,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     # Plot BO methods with preferences
     # if problem in ['ackley10', 'levy10', 'hartmann6']:
     for method_pref in METHODS_PREF:
-        path = f'results/toy/{problem}-pref/{method_pref}'
+        path = f'results/toy/{problem}-pref/random/{method_pref}'
 
         trace_best_y = np.stack([np.load(f'{path}/trace_best-y_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
         trace_best_y_pref = np.stack([np.load(f'{path}/trace_best-r_gamma1.0_prob{args.expert_prob}_rs{rs}.npy') for rs in RANDSEEDS])
@@ -99,7 +100,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         ax.plot(
             T, mean, color=METHOD2COLOR[f'{method_pref}'],
             label=METHOD2LABEL[f'{method_pref}-pref'],
-            linestyle='dashed'
+            linestyle='solid'
         )
         ax.fill_between(
             T, mean-sem, mean+sem,
