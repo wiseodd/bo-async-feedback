@@ -71,7 +71,7 @@ class ThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
         return f_sample + self.gamma * pref_sample
 
 
-class ThompsonSamplingRewardDiffMaximization(AnalyticAcquisitionFunction):
+class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
     """
     Thompson sampling acquisition function for reward modeling.
     Given a pair `x0` and `x1`, compute the distance `|r_s(x0) - r_s(x1)|^2`

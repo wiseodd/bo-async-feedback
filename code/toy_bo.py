@@ -28,7 +28,7 @@ parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=250)
 parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
-parser.add_argument('--acqf_pref', default='random', choices=['random', 'active_large_diff'])
+parser.add_argument('--acqf_pref', default='random', choices=['random', 'active_large_diff', 'active_small_diff'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
 parser.add_argument('--expert_prob', type=float, default=0.25)
@@ -108,7 +108,7 @@ if args.with_expert:
 
 print()
 print(f'Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, gamma: {args.expert_gamma}, prob: {args.expert_prob}, acqf_pref: {args.acqf_pref}, randseed: {args.randseed}')
-print('----------------------------------------------------------------------------------------------------------')
+print('-----------------------------------------------------------------------------------------------------------------------')
 
 pbar = tqdm.trange(args.exp_len)
 pbar.set_description(
@@ -164,15 +164,12 @@ for i in pbar:
 
                 # Get the active learning acqf. vals.
                 with torch.no_grad():
-                    if args.acqf_pref == 'active_large_diff':
-                        acqf = ThompsonSamplingRewardDiffMaximization(model_pref)
-                    else:
-                        raise NotImplementedError()
-
+                    acqf = ThompsonSamplingRewardDiff(model_pref)
                     acq_vals = acqf(rand_train_pref)
 
                 # Get the top N_NEW_PREF_DATA
-                topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA)[1]
+                largest = True if args.acqf_pref == 'active_large_diff' else False
+                topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA, largest=largest)[1]
                 new_train_pref = helpers.subset_pref_data(rand_train_pref, topk_idxs)
 
                 # Track the pair indices of the preference training data
