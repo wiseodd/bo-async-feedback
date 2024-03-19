@@ -56,7 +56,7 @@ def sample_pair_idxs(source, num_samples):
     samples: np.array
         Shape (num_samples, 2)
     """
-    idx_pairs = itertools.permutations(range(len(source)), 2)
+    idx_pairs = itertools.combinations(range(len(source)), 2)
     idx_pairs = list(idx_pairs)
     np.random.shuffle(idx_pairs)
     return idx_pairs[:num_samples]  # (num_samples, 2)
