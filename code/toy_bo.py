@@ -28,7 +28,7 @@ parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=250)
 parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
-parser.add_argument('--acqf_pref', default='random', choices=['random', 'active_large_diff', 'active_small_diff'])
+parser.add_argument('--acqf_pref', default='random', choices=['random', 'active_bald', 'active_large_diff', 'active_small_diff'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
 parser.add_argument('--expert_prob', type=float, default=0.25)

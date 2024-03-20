@@ -127,3 +127,52 @@ class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
         r_sample1 = mean1 + std1 * eps
 
         return torch.abs(r_sample0 - r_sample1)**2
+
+
+class BALDForRewardModel(AnalyticAcquisitionFunction):
+    """
+    Bayesian active learning by disagreement for preference learning reward model.
+    Houlsby et al., 2011.
+
+    Parameters:
+    -----------
+    model_pref: botorch.models.model.Model
+    """
+    def __init__(
+        self,
+        model_pref: Model,
+    )-> None:
+        super().__init__(model_pref)
+
+    def forward(self, data: UserDict) -> torch.Tensor:
+        """
+        Parameters:
+        -----------
+        data: UserDict
+            Format: UserDict({
+                'x_0': torch.Tensor(n, d),
+                'x_1': torch.Tensor(n, d),
+                'labels': torch.LongTensor(n,)
+            })
+
+        Returns:
+        --------
+        acqf_val: torch.Tensor
+            Shape (n,)
+        """
+        x0, x1 = data['x_0'], data['x_1']
+        x0.to(self.model.device)
+        x1.to(self.model.device)
+
+        mean0, std0 = self._mean_and_sigma(x0)
+        mean1, std1 = self._mean_and_sigma(x1)
+
+        # Thompson sample; deterministic via the random state
+        generator = torch.Generator(device=x0.device).manual_seed(self.random_state)
+        eps = torch.randn(*std0.shape,
+        device=x0.device, generator=generator)
+        # Each (n,)
+        r_sample0 = mean0 + std0 * eps
+        r_sample1 = mean1 + std1 * eps
+
+        return torch.abs(r_sample0 - r_sample1)**2

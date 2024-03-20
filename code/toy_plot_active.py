@@ -33,16 +33,23 @@ METHODS_PREF = [
     'gp',
     'la'
 ]
-AL_ACQFS = ['random', 'active_large_diff']
+AL_ACQFS = [
+    'random',
+    # 'active_large_diff',
+    'active_small_diff',
+]
 METHOD2LABEL = {
     'gp-random': 'GP-Rand',
     'la-random': 'LA-Rand',
-    'gp-active_large_diff': 'GP-Actv',
-    'la-active_large_diff': 'LA-Actv',
+    # 'gp-active_large_diff': 'GP-Actv',
+    # 'la-active_large_diff': 'LA-Actv',
+    'gp-active_small_diff': 'GP-Actv',
+    'la-active_small_diff': 'LA-Actv',
 }
 ALACQF2LINESTYLE = {
     'random': 'solid',
     'active_large_diff': 'solid',
+    'active_small_diff': 'solid',
 }
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 METHOD2COLOR = {k: v for k, v in zip(METHOD2LABEL.keys(), colors)}
@@ -102,7 +109,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     if i == 0:  # Only the left-most
         ax.set_ylabel(r'$f(x_*)$')
 
-    ax.set_xlim(0, 100)
+    ax.set_xlim(0, 250)
 
     # handles, labels = ax.get_legend_handles_labels()
     if i == 0 and not args.no_legend:
