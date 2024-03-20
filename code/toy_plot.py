@@ -14,8 +14,10 @@ import pprint
 import problems.toy as toy_problems
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--expert_prob', type=float, default=0.25)
+parser.add_argument('--expert_prob', type=float, default=0.1)
 parser.add_argument('--layout', default='aabi', choices=['aabi', 'neurips'])
+parser.add_argument('--no_title', default=False, action='store_true')
+parser.add_argument('--no_xaxis', default=False, action='store_true')
 parser.add_argument('--no_legend', default=False, action='store_true')
 args = parser.parse_args()
 
@@ -108,8 +110,15 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         )
 
     title = f'{PROBLEM2TITLE[problem]}'
-    ax.set_title(title)
-    ax.set_xlabel(r'$t$')
+
+    if not args.no_title:
+        ax.set_title(title)
+
+    if not args.no_xaxis:
+        ax.set_xlabel(r'$t$')
+
+    # if args.no_xaxis:
+    #     ax.set_xticks([])
 
     if i == 0:  # Only the left-most
         ax.set_ylabel(r'$f(x_*)$')

@@ -164,12 +164,16 @@ for i in pbar:
 
                 # Get the active learning acqf. vals.
                 with torch.no_grad():
-                    acqf = ThompsonSamplingRewardDiff(model_pref)
+                    if args.acqf_pref == 'active_bald':
+                        acqf = BALDForRewardModel(model_pref)
+                    elif args.acqf_pref == 'active_large_diff' or args.acqf_pref == 'active_small_diff':
+                        acqf = ThompsonSamplingRewardDiff(model_pref)
+
                     acq_vals = acqf(rand_train_pref)
+                    acq_vals *= -1 if args.acqf_pref == 'active_small_diff' else 1
 
                 # Get the top N_NEW_PREF_DATA
-                largest = True if args.acqf_pref == 'active_large_diff' else False
-                topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA, largest=largest)[1]
+                topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA)[1]
                 new_train_pref = helpers.subset_pref_data(rand_train_pref, topk_idxs)
 
                 # Track the pair indices of the preference training data
@@ -177,6 +181,7 @@ for i in pbar:
 
             model_pref = model_pref.condition_on_observations(new_train_pref)
 
+        # Compute the rewards of the previous best x and the proposed x using the updated pref model
         with torch.no_grad():
             ins = torch.cat([best_x, new_x], dim=0)  # (2, dim)
             out = model_pref.posterior(ins).mean.squeeze()  # (2,)

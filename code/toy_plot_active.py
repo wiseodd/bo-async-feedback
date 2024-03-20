@@ -16,13 +16,19 @@ import problems.toy as toy_problems
 parser = argparse.ArgumentParser()
 parser.add_argument('--expert_prob', type=float, default=0.1)
 parser.add_argument('--layout', default='aabi', choices=['aabi', 'neurips'])
+parser.add_argument('--al_acqf', default='active_bald', choices=['active_bald', 'active_large_diff', 'active_small_diff'])
 parser.add_argument('--no_legend', default=False, action='store_true')
 args = parser.parse_args()
 
 if args.layout == 'aabi':
     args.layout = 'jmlr'
 
-PROBLEMS = ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']
+PROBLEMS = [
+    'ackley10',
+    'levy10',
+    'rastrigin10',
+    'hartmann6'
+]
 PROBLEM2TITLE = {
     'ackley10': r'Ackley $d = 10$ ($\downarrow$)',
     'hartmann6': r'Hartmann $d = 6$ ($\downarrow$)',
@@ -35,19 +41,22 @@ METHODS_PREF = [
 ]
 AL_ACQFS = [
     'random',
-    # 'active_large_diff',
-    'active_small_diff',
+    args.al_acqf
 ]
+ACQF2NAME = {
+    'active_bald': 'BALD',
+    'active_large_diff': 'LDiff',
+    'active_small_diff': 'SDiff'
+}
 METHOD2LABEL = {
     'gp-random': 'GP-Rand',
     'la-random': 'LA-Rand',
-    # 'gp-active_large_diff': 'GP-Actv',
-    # 'la-active_large_diff': 'LA-Actv',
-    'gp-active_small_diff': 'GP-Actv',
-    'la-active_small_diff': 'LA-Actv',
+    f'gp-{args.al_acqf}': f'GP-{ACQF2NAME[args.al_acqf]}',
+    f'la-{args.al_acqf}': f'LA-{ACQF2NAME[args.al_acqf]}',
 }
 ALACQF2LINESTYLE = {
     'random': 'solid',
+    'active_bald': 'solid',
     'active_large_diff': 'solid',
     'active_small_diff': 'solid',
 }
@@ -76,8 +85,12 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     ax.axhline(best_val, c='k', ls='dashed', zorder=1000)
 
     # Plot BO methods with preferences
-    if problem not in ['ackley10', 'levy10', 'rastrigin10', 'hartmann6']:
-    # if problem not in ['ackley10', 'levy10', 'rastrigin10']:
+    if problem not in [
+        'ackley10',
+        'levy10',
+        'rastrigin10',
+        'hartmann6'
+    ]:
         continue
 
     for method_pref in METHODS_PREF:
@@ -128,5 +141,5 @@ else:
 if not os.path.exists(path):
     os.makedirs(path)
 
-fname = f'toy_bo_prob{args.expert_prob}_active'
+fname = f'toy_bo_prob{args.expert_prob}_{args.al_acqf}'
 plt.savefig(f'{path}/{fname}.pdf')

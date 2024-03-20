@@ -120,8 +120,7 @@ class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
 
         # Thompson sample; deterministic via the random state
         generator = torch.Generator(device=x0.device).manual_seed(self.random_state)
-        eps = torch.randn(*std0.shape,
-        device=x0.device, generator=generator)
+        eps = torch.randn(*std0.shape, device=x0.device, generator=generator)
         # Each (n,)
         r_sample0 = mean0 + std0 * eps
         r_sample1 = mean1 + std1 * eps
@@ -166,13 +165,38 @@ class BALDForRewardModel(AnalyticAcquisitionFunction):
 
         mean0, std0 = self._mean_and_sigma(x0)
         mean1, std1 = self._mean_and_sigma(x1)
+        means = torch.stack([mean0, mean1]).T
+        variances = (torch.stack([std0, std1]).T)**2
 
-        # Thompson sample; deterministic via the random state
-        generator = torch.Generator(device=x0.device).manual_seed(self.random_state)
-        eps = torch.randn(*std0.shape,
-        device=x0.device, generator=generator)
-        # Each (n,)
-        r_sample0 = mean0 + std0 * eps
-        r_sample1 = mean1 + std1 * eps
+        # Probit approx. to get the marginalized softmax
+        probs = _multiclass_probit_approx(means, variances)
 
-        return torch.abs(r_sample0 - r_sample1)**2
+        # Entropy H(y | x) of the pred. dist. p(y | x) where f is integrated out
+        entropy = _entropy_cat(probs)
+
+        # Expected entropy E_f[H(y | x, f)]
+        n_samples = 100
+        avg_entropy = 0
+        for _ in range(n_samples):  # MC integration
+            f0_sample = _sample_gaussian(mean0, std0)
+            f1_sample = _sample_gaussian(mean1, std1)
+            probs_sample = torch.softmax(torch.stack([f0_sample, f1_sample]).T, dim=-1)
+            avg_entropy += 1/n_samples * _entropy_cat(probs_sample)
+
+        return entropy - avg_entropy
+
+
+def _sample_gaussian(mean, std):
+    eps = torch.randn(*std.shape, device=std.device)
+    return mean + std * eps
+
+
+def _entropy_cat(probs):
+    return -torch.sum(probs * torch.log(probs), dim=-1)
+
+
+def _multiclass_probit_approx(mean, var):
+    if len(var.shape) == 3:  # Batch of covariance matrices
+        var = torch.diagonal(var, dim1=-2, dim2=-1)
+
+    return torch.softmax(mean / torch.sqrt(1 + torch.pi/8 * var), dim=-1)
