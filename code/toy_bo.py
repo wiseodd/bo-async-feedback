@@ -24,14 +24,16 @@ import argparse, os, sys
 np.set_printoptions(precision=3)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', default='ackley10', choices=['levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10'])
+parser.add_argument('--problem', default='ackley10', choices=[
+    'levy10', 'ackley2', 'ackley10', 'hartmann6', 'rastrigin10', 'ackley10constrained', 'levy10constrained'
+])
 parser.add_argument('--method', default='la', choices=['la', 'gp'])
 parser.add_argument('--exp_len', type=int, default=250)
 parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
 parser.add_argument('--acqf_pref', default='random', choices=['random', 'active_bald', 'active_large_diff', 'active_small_diff'])
 parser.add_argument('--with_expert', default=False, action='store_true')
 parser.add_argument('--expert_gamma', type=float, default=1.)
-parser.add_argument('--expert_prob', type=float, default=0.25)
+parser.add_argument('--expert_prob', type=float, default=0.1)
 parser.add_argument('--verbose', default=False, action='store_true')
 parser.add_argument('--device', default='cpu', choices=['cpu', 'mps', 'cuda'])
 parser.add_argument('--randseed', type=int, default=1)
@@ -99,6 +101,7 @@ if args.with_expert:
 best_x = train_x[train_y.argmin().item()].unsqueeze(0)
 best_y = train_y.min().item()
 trace_best_y = []
+trace_best_x = []
 
 if args.with_expert:
     best_r = model_pref.posterior(best_x).mean.squeeze().item()
@@ -144,6 +147,7 @@ for i in pbar:
         truth = (new_y.item() > best_y) if problem.is_maximize else (new_y.item() < best_y)
         if truth:
             best_y = new_y.item()
+            best_x = new_x
         trace_best_y.append(best_y)
 
         desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y.item():.3f}]'
@@ -208,6 +212,9 @@ for i in pbar:
 
     pbar.set_description(desc)
 
+    # Also save the current best x
+    trace_best_x.append(best_x)
+
 # Save results
 problem_name = args.problem + ('-pref' if args.with_expert else '')
 path = f'results/toy/{problem_name}/{args.acqf_pref}/{args.method}'
@@ -215,17 +222,18 @@ if not os.path.exists(path):
     os.makedirs(path)
 
 if not args.with_expert:
+    np.save(f'{path}/trace_best-x_rs{args.randseed}.npy', trace_best_x)
+
     if args.acqf == 'ts':
         np.save(f'{path}/trace_best-y_rs{args.randseed}.npy', trace_best_y)
     elif args.acqf == 'ei':
         np.save(f'{path}/trace_best-y_ei_rs{args.randseed}.npy', trace_best_y)
 else:
-    print(best_x.squeeze().numpy())
-
     def args_to_name():
         name = f'gamma{args.expert_gamma}_prob{args.expert_prob}'
         return name
 
+    np.save(f'{path}/trace_best-x_{args_to_name()}_rs{args.randseed}.npy', trace_best_x)
     np.save(f'{path}/trace_best-y_{args_to_name()}_rs{args.randseed}.npy', trace_best_y)
     np.save(f'{path}/trace_best-r_{args_to_name()}_rs{args.randseed}.npy', trace_best_r)
     np.save(f'{path}/trace_best-scal-y_{args_to_name()}_rs{args.randseed}.npy', trace_best_scal_y)

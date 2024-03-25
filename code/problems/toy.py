@@ -49,7 +49,6 @@ class Problem:
         """
         return np.argmax([self._score(x_0), self._score(x_1)])
 
-
     def _score(self, x):
         raise NotImplementedError
 
@@ -119,12 +118,42 @@ class Rastrigin10(Problem):
         return -torch.linalg.norm(x - self.optimal_x)**2
 
 
+class Ackley10Constrained(Problem):
+    def __init__(self):
+        dim = 10
+        is_maximize = False
+        super().__init__(dim, is_maximize)
+        self.preferred_norm = 100
+
+    def get_function(self):
+        return Ackley(dim=self.dim)
+
+    def _score(self, x):
+        return -abs(torch.linalg.norm(x) - self.preferred_norm)**2
+
+
+class Levy10Constrained(Problem):
+    def __init__(self):
+        dim = 10
+        is_maximize = False
+        super().__init__(dim, is_maximize)
+        self.preferred_norm = 22
+
+    def get_function(self):
+        return Levy(dim=self.dim)
+
+    def _score(self, x):
+        return -abs(torch.linalg.norm(x) - self.preferred_norm)**2
+
+
 PROBLEM_LIST = {
     'ackley2': Ackley2,
     'ackley10': Ackley10,
     'hartmann6': Hartmann6,
     'levy10': Levy10,
-    'rastrigin10': Rastrigin10
+    'rastrigin10': Rastrigin10,
+    'ackley10constrained': Ackley10Constrained,
+    'levy10constrained': Levy10Constrained,
 }
 
 
