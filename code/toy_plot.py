@@ -48,7 +48,7 @@ RANDSEEDS = [1, 2, 3, 4, 5]
 
 
 FIG_WIDTH = 1
-FIG_HEIGHT = 0.2
+FIG_HEIGHT = 0.175
 rc_params, fig_width, fig_height = plot_utils.get_mpl_rcParams(
     FIG_WIDTH, FIG_HEIGHT,
     single_col=False,

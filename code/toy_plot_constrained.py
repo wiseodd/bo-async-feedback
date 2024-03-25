@@ -29,10 +29,13 @@ PROBLEMS = [
     'levy10constrained'
 ]
 PROBLEM2TITLE = {
-    'ackley10constrained': r'Ackley $d = 10$ with Pref.',
-    'levy10constrained': r'Levy $d = 10$ with Pref.',
+    'ackley10constrained': r'Ackley $d = 10$ With Conflicting Pref.',
+    'levy10constrained': r'Levy $d = 10$ With Conflicting Pref.',
 }
-METHODS_BASE = ['gp', 'la']
+METHODS_BASE = [
+    # 'gp',
+    'la'
+]
 METHODS_PREF = [
     # 'gp',
     'la'
@@ -49,7 +52,7 @@ RANDSEEDS = [1, 2, 3, 4, 5]
 
 
 FIG_WIDTH = 1
-FIG_HEIGHT = 0.2
+FIG_HEIGHT = 0.15
 rc_params, fig_width, fig_height = plot_utils.get_mpl_rcParams(
     FIG_WIDTH, FIG_HEIGHT,
     single_col=False,
@@ -119,13 +122,14 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         sem = st.sem(trace_norm_x, axis=0)  # Over randseeds
         T = np.arange(len(mean)) + 1
         ax.plot(
-            T, mean, color=METHOD2COLOR[f'{method_pref}'],
-            # label=METHOD2LABEL[f'{method_pref}-pref'],
-            linestyle='dotted'
+            T, mean,
+            label=r'$\Vert x_* \Vert_2$',
+            linestyle='dotted',
+            color='gray'
         )
         ax.fill_between(
             T, mean-sem, mean+sem,
-            color=METHOD2COLOR[f'{method_pref}'], alpha=0.25
+            color='gray', alpha=0.25
         )
 
     title = f'{PROBLEM2TITLE[problem]}'
