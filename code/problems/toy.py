@@ -1,27 +1,27 @@
+import abc
 import torch
 from botorch.test_functions import Ackley, Hartmann, Rastrigin, Levy
+from botorch.test_functions.base import BaseTestProblem
 import numpy as np
 
 
-class Problem:
+class ToyProblem(abc.ABC):
     """
     Parameters:
     -----------
     dim: int
 
-    bounds: torch.Tensor
-        Shape (2, dim)
-
     is_maximize: bool
     """
-    def __init__(self, dim, is_maximize):
+
+    def __init__(self, dim: int, is_maximize: bool) -> None:
         self.dim = dim
         self.is_maximize = is_maximize
         self.bounds = torch.tensor(self.get_function()._bounds).T  # (2, dim)
         self.optimal_f = self.get_function().optimal_value
         self.optimal_x = self.get_function().optimizers[0]
 
-    def get_function(self):
+    def get_function(self) -> BaseTestProblem:
         """
         Returns:
         --------
@@ -29,7 +29,7 @@ class Problem:
         """
         raise NotImplementedError
 
-    def get_preference(self, x_0, x_1):
+    def get_preference(self, x_0: torch.Tensor, x_1: torch.Tensor) -> int:
         """
         Given a pair x_0 and x_1, return 0 if the first one is preferred,
         otherwise return 1.
@@ -49,11 +49,11 @@ class Problem:
         """
         return np.argmax([self._score(x_0), self._score(x_1)])
 
-    def _score(self, x):
+    def _score(self, x: torch.Tensor) -> float:
         raise NotImplementedError
 
 
-class Ackley2(Problem):
+class Ackley2(ToyProblem):
     def __init__(self):
         dim = 2
         is_maximize = False
@@ -63,10 +63,10 @@ class Ackley2(Problem):
         return Ackley(dim=self.dim)
 
     def _score(self, x):
-        return -torch.linalg.norm(x - self.optimal_x)**2
+        return -torch.linalg.norm(x - self.optimal_x) ** 2
 
 
-class Ackley10(Problem):
+class Ackley10(ToyProblem):
     def __init__(self):
         dim = 10
         is_maximize = False
@@ -76,10 +76,10 @@ class Ackley10(Problem):
         return Ackley(dim=self.dim)
 
     def _score(self, x):
-        return -torch.linalg.norm(x - self.optimal_x)**2
+        return -torch.linalg.norm(x - self.optimal_x) ** 2
 
 
-class Hartmann6(Problem):
+class Hartmann6(ToyProblem):
     def __init__(self):
         dim = 6
         is_maximize = False
@@ -89,10 +89,10 @@ class Hartmann6(Problem):
         return Hartmann(dim=self.dim)
 
     def _score(self, x):
-        return -torch.linalg.norm(x - self.optimal_x)**2
+        return -torch.linalg.norm(x - self.optimal_x) ** 2
 
 
-class Levy10(Problem):
+class Levy10(ToyProblem):
     def __init__(self):
         dim = 10
         is_maximize = False
@@ -102,10 +102,10 @@ class Levy10(Problem):
         return Levy(dim=self.dim)
 
     def _score(self, x):
-        return -torch.linalg.norm(x - self.optimal_x)**2
+        return -torch.linalg.norm(x - self.optimal_x) ** 2
 
 
-class Rastrigin10(Problem):
+class Rastrigin10(ToyProblem):
     def __init__(self):
         dim = 10
         is_maximize = False
@@ -115,10 +115,10 @@ class Rastrigin10(Problem):
         return Rastrigin(dim=self.dim)
 
     def _score(self, x):
-        return -torch.linalg.norm(x - self.optimal_x)**2
+        return -torch.linalg.norm(x - self.optimal_x) ** 2
 
 
-class Ackley10Constrained(Problem):
+class Ackley10Constrained(ToyProblem):
     def __init__(self):
         dim = 10
         is_maximize = False
@@ -129,10 +129,10 @@ class Ackley10Constrained(Problem):
         return Ackley(dim=self.dim)
 
     def _score(self, x):
-        return -abs(torch.linalg.norm(x) - self.preferred_norm)**2
+        return -abs(torch.linalg.norm(x) - self.preferred_norm) ** 2
 
 
-class Levy10Constrained(Problem):
+class Levy10Constrained(ToyProblem):
     def __init__(self):
         dim = 10
         is_maximize = False
@@ -143,7 +143,7 @@ class Levy10Constrained(Problem):
         return Levy(dim=self.dim)
 
     def _score(self, x):
-        return -abs(torch.linalg.norm(x) - self.preferred_norm)**2
+        return -abs(torch.linalg.norm(x) - self.preferred_norm) ** 2
 
 
 PROBLEM_LIST = {
