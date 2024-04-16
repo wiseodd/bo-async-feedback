@@ -8,6 +8,7 @@ from laplace_bayesopt.acqf import ThompsonSampling
 
 from botorch.acquisition.analytic import ExpectedImprovement
 from gauche.kernels.fingerprint_kernels.tanimoto_kernel import TanimotoKernel
+from gpytorch.kernels import ScaleKernel
 
 import problems.chem as chem_probs
 from models.surrogate import MLLGP, MLP
@@ -34,6 +35,7 @@ parser.add_argument(
         "kinase",
     ],
 )
+parser.add_argument("--feats", default="fingerprints", choices=["fingerprints"])
 parser.add_argument("--method", default="la", choices=["la", "gp"])
 parser.add_argument("--exp_len", type=int, default=250)
 parser.add_argument("--acqf", default="ts", choices=["ts", "ei"])
@@ -62,7 +64,7 @@ torch.manual_seed(args.randseed)
 #######################################################################################
 #                         Standard Bayesian Optimization Preparation                  #
 #######################################################################################
-problem = chem_probs.PROBLEM_LIST[args.problem]()
+problem = chem_probs.PROBLEM_LIST[args.problem](args.feats)
 
 # Initialize training data by uniform sampling
 train_smiles, train_X, train_Y = [], [], []
@@ -74,6 +76,9 @@ while len(train_smiles) < 10:
     train_X.append(feats)
     train_Y.append(obj)
 
+train_X = torch.stack(train_X)
+train_Y = torch.stack(train_Y)
+
 # Initialize surrogate models
 if args.method == "la":
 
@@ -81,9 +86,9 @@ if args.method == "la":
         return MLP(problem.dim, normalize_output=True)
 
     model = LaplaceBoTorch(
-        get_net=get_net,
-        train_X=torch.stack(train_X).float(),
-        train_Y=torch.stack(train_Y).float(),
+        get_net,
+        train_X,
+        train_Y,
         noise_var=1e-4,
         batch_size=1024,
         backend=CurvlinopsGGN,
@@ -91,9 +96,10 @@ if args.method == "la":
     )
 elif args.method == "gp":
     model = MLLGP(
-        torch.stack(train_X),
-        torch.stack(train_Y),
-        kernel=TanimotoKernel(),
+        train_X,
+        train_Y,
+        kernel=ScaleKernel(TanimotoKernel()),
+        lr=1e-3,
         n_epochs=500,
     )
 
@@ -129,7 +135,7 @@ if args.with_expert:
 #######################################################################################
 best_idx = train_Y.argmax().item() if problem.is_maximize else train_Y.argmin().item()
 best_x = train_X[best_idx].unsqueeze(0)
-best_y = train_Y[best_idx]
+best_y = train_Y[best_idx].item()
 trace_best_y = []
 trace_best_x = []
 
@@ -144,8 +150,8 @@ if args.with_expert:
 print()
 print(
     f"Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, "
-    + "gamma: {args.expert_gamma}, prob: {args.expert_prob}, "
-    + "acqf_pref: {args.acqf_pref}, randseed: {args.randseed}"
+    + f"gamma: {args.expert_gamma}, prob: {args.expert_prob}, "
+    + f"acqf_pref: {args.acqf_pref}, randseed: {args.randseed}"
 )
 print(
     "----------------------------------------------------------------------------------"
@@ -168,8 +174,8 @@ for i in pbar:
             model=model, model_pref=model_pref, maximize=False, gamma=args.expert_gamma
         ).to(args.device)
 
-    acq_vals = torch.cat([acqf(x) for x in problem.get_dataloader()], dim=0)
-    best_acq_val, best_acq_idx = acq_vals.max()
+    acq_vals = torch.cat([acqf(x) for x, _ in problem.get_dataloader()], dim=0)
+    best_acq_val, best_acq_idx = acq_vals.max(dim=0)
 
     new_smiles, new_x, new_y = problem.pop_candidate(best_acq_idx)
     train_smiles.append(new_smiles)
@@ -264,7 +270,7 @@ for i in pbar:
 
         desc = (
             f"[f(x*): {best_y:.2f}, r(x*): {best_r:.2f}, scal_y*: {best_scal_y:.2f},"
-            + " f(x): {new_y.item():.2f}, r(x): {new_r:.2f}, scal_y: {scal_y_new:.2f}]"
+            + f" f(x): {new_y.item():.2f}, r(x): {new_r:.2f}, scal_y: {scal_y_new:.2f}]"
         )
 
     pbar.set_description(desc)
@@ -274,7 +280,7 @@ for i in pbar:
 
 # Save results
 problem_name = args.problem + ("-pref" if args.with_expert else "")
-path = f"results/toy/{problem_name}/{args.acqf_pref}/{args.method}"
+path = f"results/chem/{problem_name}/{args.acqf_pref}/{args.method}"
 if not os.path.exists(path):
     os.makedirs(path)
 

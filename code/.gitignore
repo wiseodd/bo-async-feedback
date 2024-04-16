@@ -8,4 +8,4 @@ laplace_models/
 
 *.out
 
-data/cache/**/*_feats.bin
+cache/

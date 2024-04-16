@@ -6,4 +6,4 @@
 	url = git@github.com:wiseodd/synthetic_accessibility_project.git
 [submodule "code/molskill"]
 	path = code/molskill
-	url = git@github.com:microsoft/molskill.git
+	url = git@github.com:wiseodd/molskill.git

@@ -13,6 +13,7 @@ from rdkit.Chem import AllChem
 import sys
 
 sys.path.append("molskill")
+from molskill.data.featurizers import get_featurizer
 from molskill.scorer import MolSkillScorer
 
 sys.path.append("synthetic_accessibility_project")
@@ -60,7 +61,10 @@ class DiscreteChemProblem(ABC):
             A non-shuffled PyTorch dataloader of the candidate molecules.
         """
         return DataLoader(
-            TensorDataset(torch.stack(self.cand_feats), torch.stack(self.cand_obj)),
+            TensorDataset(
+                torch.stack(self.cand_feats),
+                torch.stack(self.cand_objs),
+            ),
             batch_size=batch_size,
             shuffle=False,
         )
@@ -151,8 +155,8 @@ class DiscreteChemProblem(ABC):
 
 class Kinase(DiscreteChemProblem):
 
-    def __init__(self, feature_type: str, is_maximize: bool) -> None:
-        super().__init__(feature_type, is_maximize)
+    def __init__(self, feature_type: str) -> None:
+        super().__init__(feature_type, is_maximize=False)
 
         self.problem_name = "Kinase"
         self.data_pd_orig = pd.read_csv(
@@ -162,10 +166,17 @@ class Kinase(DiscreteChemProblem):
         self.OBJ_COL = "score"
 
         self.cand_smiles = self.data_pd_orig[self.SMILES_COL].to_list()
-        self.cand_objs = self.data_pd_orig[self.OBJ_COL].to_list()
+        self.cand_objs = list(
+            torch.from_numpy(self.data_pd_orig[self.OBJ_COL].to_numpy())
+            .float()
+            .unsqueeze(1)
+        )
+        assert len(self.cand_objs) == len(self.cand_smiles)
+        assert self.cand_objs[0].shape == (1,)
         self.cand_feats = self._get_features()
 
-        self.dim = self.cand_feats[0].shape
+        assert len(self.cand_feats[0].shape) == 1
+        self.dim = self.cand_feats[0].shape[0]
 
         self._validate()
 
