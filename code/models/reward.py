@@ -12,10 +12,10 @@ class ToyRewardModel(nn.Module):
             nn.ReLU(),
             nn.Linear(50, 50),
             nn.ReLU(),
-            nn.Linear(50, 1)
+            nn.Linear(50, 1),
         )
-        self.register_buffer('f_mean', torch.tensor(0., dtype=torch.float))
-        self.register_buffer('f_std', torch.tensor(1., dtype=torch.float))
+        self.register_buffer("f_mean", torch.tensor(0.0, dtype=torch.float))
+        self.register_buffer("f_std", torch.tensor(1.0, dtype=torch.float))
 
     def forward(self, data):
         """
@@ -25,7 +25,7 @@ class ToyRewardModel(nn.Module):
         """
         if isinstance(data, UserDict):
             device = next(self.parameters()).device
-            x_0, x_1 = data['x_0'], data['x_1']
+            x_0, x_1 = data["x_0"], data["x_1"]
             x_0.to(device)
             x_1.to(device)
 
@@ -38,8 +38,8 @@ class ToyRewardModel(nn.Module):
             out = self.net(data)  # (batch_size, 1)
 
             # Normalize
-            out = out - getattr(self, 'f_mean')
-            out = out / getattr(self, 'f_std')
+            out = out - getattr(self, "f_mean")
+            out = out / getattr(self, "f_std")
 
             return out
 
@@ -49,14 +49,14 @@ class ToyRewardModelWithOutput(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(dim+1, 50),  # +1 for the f(x) input
+            nn.Linear(dim + 1, 50),  # +1 for the f(x) input
             nn.ReLU(),
             nn.Linear(50, 50),
             nn.ReLU(),
-            nn.Linear(50, 1)
+            nn.Linear(50, 1),
         )
-        self.register_buffer('f_mean', torch.tensor(0., dtype=torch.float))
-        self.register_buffer('f_std', torch.tensor(1., dtype=torch.float))
+        self.register_buffer("f_mean", torch.tensor(0.0, dtype=torch.float))
+        self.register_buffer("f_std", torch.tensor(1.0, dtype=torch.float))
 
     def forward(self, data):
         """
@@ -65,8 +65,8 @@ class ToyRewardModelWithOutput(nn.Module):
             Else torch.Tensor of shape (batch_size, dim)
         """
         if isinstance(data, UserDict):
-            x_0, x_1 = data['x_0'], data['x_1']
-            fx_0, fx_1 = data['fx_0'], data['fx_1']
+            x_0, x_1 = data["x_0"], data["x_1"]
+            fx_0, fx_1 = data["fx_0"], data["fx_1"]
 
             # (batch_size, dim+1)
             input_0 = torch.cat([x_0, fx_0.unsqueeze(-1)], dim=-1)
@@ -80,7 +80,7 @@ class ToyRewardModelWithOutput(nn.Module):
             out = self.net(data)  # (batch_size, 1)
 
             # Normalize
-            out = out - getattr(self, 'f_mean')
-            out = out / getattr(self, 'f_std')
+            out = out - getattr(self, "f_mean")
+            out = out / getattr(self, "f_std")
 
             return out

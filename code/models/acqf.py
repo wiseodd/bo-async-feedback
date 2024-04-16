@@ -28,14 +28,15 @@ class ThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
         The random state of the sampling f_s ~ p(f | D). This is to ensure that for any given x,
         the sample from p(f(x) | D) comes from the same sample posterior sample f_s ~ p(f | D).
     """
+
     def __init__(
         self,
         model: Model,
         model_pref: Model,
         gamma: float = 0,
         maximize: bool = True,
-        random_state: int = 123
-    )-> None:
+        random_state: int = 123,
+    ) -> None:
         super().__init__(model)
         self.model_pref = model_pref
         self.gamma = gamma
@@ -87,11 +88,8 @@ class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
         The random state of the sampling r_s ~ p(r | D). This is to ensure that for any given x,
         the sample from p(r(x) | D) comes from the same sample posterior sample r_s ~ p(r | D).
     """
-    def __init__(
-        self,
-        model_pref: Model,
-        random_state: int = 123
-    )-> None:
+
+    def __init__(self, model_pref: Model, random_state: int = 123) -> None:
         super().__init__(model_pref)
         self.random_state = random_state
 
@@ -111,7 +109,7 @@ class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
         acqf_val: torch.Tensor
             Shape (n,)
         """
-        x0, x1 = data['x_0'], data['x_1']
+        x0, x1 = data["x_0"], data["x_1"]
         x0.to(self.model.device)
         x1.to(self.model.device)
 
@@ -125,7 +123,7 @@ class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
         r_sample0 = mean0 + std0 * eps
         r_sample1 = mean1 + std1 * eps
 
-        return torch.abs(r_sample0 - r_sample1)**2
+        return torch.abs(r_sample0 - r_sample1) ** 2
 
 
 class BALDForRewardModel(AnalyticAcquisitionFunction):
@@ -137,10 +135,11 @@ class BALDForRewardModel(AnalyticAcquisitionFunction):
     -----------
     model_pref: botorch.models.model.Model
     """
+
     def __init__(
         self,
         model_pref: Model,
-    )-> None:
+    ) -> None:
         super().__init__(model_pref)
 
     def forward(self, data: UserDict) -> torch.Tensor:
@@ -159,14 +158,14 @@ class BALDForRewardModel(AnalyticAcquisitionFunction):
         acqf_val: torch.Tensor
             Shape (n,)
         """
-        x0, x1 = data['x_0'], data['x_1']
+        x0, x1 = data["x_0"], data["x_1"]
         x0.to(self.model.device)
         x1.to(self.model.device)
 
         mean0, std0 = self._mean_and_sigma(x0)
         mean1, std1 = self._mean_and_sigma(x1)
         means = torch.stack([mean0, mean1]).T
-        variances = (torch.stack([std0, std1]).T)**2
+        variances = (torch.stack([std0, std1]).T) ** 2
 
         # Probit approx. to get the marginalized softmax
         probs = _multiclass_probit_approx(means, variances)
@@ -181,7 +180,7 @@ class BALDForRewardModel(AnalyticAcquisitionFunction):
             f0_sample = _sample_gaussian(mean0, std0)
             f1_sample = _sample_gaussian(mean1, std1)
             probs_sample = torch.softmax(torch.stack([f0_sample, f1_sample]).T, dim=-1)
-            avg_entropy += 1/n_samples * _entropy_cat(probs_sample)
+            avg_entropy += 1 / n_samples * _entropy_cat(probs_sample)
 
         return entropy - avg_entropy
 
@@ -199,4 +198,4 @@ def _multiclass_probit_approx(mean, var):
     if len(var.shape) == 3:  # Batch of covariance matrices
         var = torch.diagonal(var, dim1=-2, dim2=-1)
 
-    return torch.softmax(mean / torch.sqrt(1 + torch.pi/8 * var), dim=-1)
+    return torch.softmax(mean / torch.sqrt(1 + torch.pi / 8 * var), dim=-1)

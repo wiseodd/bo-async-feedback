@@ -1,6 +1,7 @@
 from __future__ import annotations
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 from torch import nn
 import torch.nn.functional as F
@@ -25,8 +26,8 @@ class MLP(nn.Module):
         self.fc3 = nn.Linear(50, out_dim)
 
         self.normalize_output = normalize_output
-        self.register_buffer('f_mean', torch.tensor(0., dtype=torch.float))
-        self.register_buffer('f_std', torch.tensor(1., dtype=torch.float))
+        self.register_buffer("f_mean", torch.tensor(0.0, dtype=torch.float))
+        self.register_buffer("f_std", torch.tensor(1.0, dtype=torch.float))
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -34,8 +35,8 @@ class MLP(nn.Module):
         out = self.fc3(x)
 
         if self.normalize_output:
-            out = out - getattr(self, 'f_mean')
-            out = out / getattr(self, 'f_std')
+            out = out - getattr(self, "f_mean")
+            out = out / getattr(self, "f_std")
 
         return out
 
@@ -43,19 +44,18 @@ class MLP(nn.Module):
 class MLLGP(SingleTaskGP):
 
     def __init__(
-            self,
-            train_X: torch.Tensor,
-            train_Y: torch.Tensor,
-            kernel: Kernel | None = None,  # Default to Matern
-            likelihood: Likelihood | None = None,
-            lr: float = 0.01,
-            n_epochs: int = 500,
+        self,
+        train_X: torch.Tensor,
+        train_Y: torch.Tensor,
+        kernel: Kernel | None = None,  # Default to Matern
+        likelihood: Likelihood | None = None,
+        lr: float = 0.01,
+        n_epochs: int = 500,
     ):
         self.orig_train_X = train_X
         self.orig_train_Y = train_Y
         super().__init__(
-            train_X=train_X, train_Y=train_Y,
-            likelihood=likelihood, covar_module=kernel
+            train_X=train_X, train_Y=train_Y, likelihood=likelihood, covar_module=kernel
         )
         self.kernel = kernel
         self.lr = lr
@@ -82,14 +82,10 @@ class MLLGP(SingleTaskGP):
         self.likelihood.eval()
 
     def condition_on_observations(
-        self,
-        X: torch.Tensor,
-        Y: torch.Tensor,
-        **kwargs
+        self, X: torch.Tensor, Y: torch.Tensor, **kwargs
     ) -> MLLGP:
         train_X = torch.cat([self.train_inputs[0], X])
         train_Y = torch.cat([self.train_targets.unsqueeze(-1), Y])
         return MLLGP(
-            train_X, train_Y, self.kernel,
-            self.likelihood, self.lr, self.n_epochs
+            train_X, train_Y, self.kernel, self.likelihood, self.lr, self.n_epochs
         )

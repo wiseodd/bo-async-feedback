@@ -2,11 +2,13 @@ import torch
 import numpy as np
 import scipy.stats as st
 import matplotlib.pyplot as plt
-plt.style.use('bmh')
+
+plt.style.use("bmh")
 import utils.plot as plot_utils
 import argparse
 import os
 import seaborn as sns
+
 # sns.set_palette('colorblind')
 # sns.set_style('whitegrid')
 import pprint
@@ -19,14 +21,12 @@ problem = toy_problems.Ackley2()
 problem_func = problem.get_function()
 
 reward_model = ToyRewardModel(problem.dim)
-reward_model.load_state_dict(torch.load('pretrained_models/reward_models/ackley2.pt'))
+reward_model.load_state_dict(torch.load("pretrained_models/reward_models/ackley2.pt"))
 reward_model.eval()
 
 FIG_WIDTH = 1
 FIG_HEIGHT = 0.15
-rc_params, fig_width, fig_height = plot_utils.get_mpl_rcParams(
-    FIG_WIDTH, FIG_HEIGHT
-)
+rc_params, fig_width, fig_height = plot_utils.get_mpl_rcParams(FIG_WIDTH, FIG_HEIGHT)
 plt.rcParams.update(rc_params)
 
 fig, axs = plt.subplots(1, 3, sharex=True, sharey=True, constrained_layout=True)
@@ -48,10 +48,9 @@ with torch.no_grad():
     axs[1].contourf(X, Y, -R.reshape(n, n))  # Negative reward since f is min problem
 
 # Save results
-path = f'../paper/figs'
+path = f"../paper/figs"
 if not os.path.exists(path):
     os.makedirs(path)
 
-fname = f'fig2'
-plt.savefig(f'{path}/{fname}.pdf')
-
+fname = f"fig2"
+plt.savefig(f"{path}/{fname}.pdf")

@@ -181,5 +181,5 @@ class ReaxysMPScore(DiscreteChemProblem):
         return self.scorer(smiles)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     problem = KinaseMolSkill(feature_type="fingerprints", is_maximize=True)

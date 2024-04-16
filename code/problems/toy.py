@@ -147,17 +147,17 @@ class Levy10Constrained(ToyProblem):
 
 
 PROBLEM_LIST = {
-    'ackley2': Ackley2,
-    'ackley10': Ackley10,
-    'hartmann6': Hartmann6,
-    'levy10': Levy10,
-    'rastrigin10': Rastrigin10,
-    'ackley10constrained': Ackley10Constrained,
-    'levy10constrained': Levy10Constrained,
+    "ackley2": Ackley2,
+    "ackley10": Ackley10,
+    "hartmann6": Hartmann6,
+    "levy10": Levy10,
+    "rastrigin10": Rastrigin10,
+    "ackley10constrained": Ackley10Constrained,
+    "levy10constrained": Levy10Constrained,
 }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     problem = Levy10()
     print(problem.bounds.shape)
     print(problem.optimal_x, problem.optimal_f)

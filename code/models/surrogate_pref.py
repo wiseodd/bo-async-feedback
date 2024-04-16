@@ -1,6 +1,7 @@
 from __future__ import annotations
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 import torch
 from torch import nn, optim
 import torch.utils.data as data_utils
@@ -74,31 +75,32 @@ class PrefLaplaceBoTorch(botorch_model.Model):
     device : {'cpu', 'cuda'}, default='cpu'
         Which device to run the experiment on.
     """
+
     def __init__(
         self,
         get_net: Callable[[], nn.Module],
         train_data: UserDict,
         bnn: Laplace = None,
-        noise_var: float | None =  None,
+        noise_var: float | None = None,
         last_layer: bool = False,
-        hess_factorization: str = 'kron',
+        hess_factorization: str = "kron",
         posthoc_marglik_iters: int = 100,
         batch_size: int = 10,
         n_epochs: int = 1000,
         lr: float = 1e-1,
         wd: float = 1e-3,
         backend: CurvatureInterface = AsdlGGN,
-        device: str ='cpu',
-        enable_backprop: bool = True
+        device: str = "cpu",
+        enable_backprop: bool = True,
     ):
         super().__init__()
         self.train_data = train_data
         self.batch_size = batch_size
         self.last_layer = last_layer
-        self.subset_of_weights = 'last_layer' if last_layer else 'all'
+        self.subset_of_weights = "last_layer" if last_layer else "all"
         self.hess_factorization = hess_factorization
         self.posthoc_marglik_iters = posthoc_marglik_iters
-        assert device in ['cpu', 'cuda']
+        assert device in ["cpu", "cuda"]
         self.device = device
         self.n_epochs = n_epochs
         self.lr = lr
@@ -109,15 +111,14 @@ class PrefLaplaceBoTorch(botorch_model.Model):
         self.bnn = bnn
 
         if type(noise_var) != float and noise_var is not None:
-            raise ValueError('Noise variance must be float >= 0. or None')
+            raise ValueError("Noise variance must be float >= 0. or None")
         if type(noise_var) == float and noise_var < 0:
-            raise ValueError('Noise variance must be >= 0.')
+            raise ValueError("Noise variance must be >= 0.")
         self.noise_var = noise_var
 
         # Initialize Laplace
         if self.bnn is None:
             self._train_model(self._get_train_loader())
-
 
     def posterior(
         self,
@@ -133,13 +134,13 @@ class PrefLaplaceBoTorch(botorch_model.Model):
         # Q is the num. of x's predicted jointly
         # D is the feature size
         # K is the output size, i.e. num of tasks
-        assert len(X.shape) == 2 or len(X.shape) == 3, 'X must be a 2- or 3-dim tensor'
+        assert len(X.shape) == 2 or len(X.shape) == 3, "X must be a 2- or 3-dim tensor"
         if len(X.shape) == 2:
             X = X.unsqueeze(1)
 
         # Transform to `(B*Q, D)`
         B, Q, D = X.shape
-        X = X.reshape(B*Q, D)
+        X = X.reshape(B * Q, D)
 
         # Posterior predictive distribution
         # mean_y is (B*Q, K); cov_y is (B*Q*K, B*Q*K)
@@ -147,13 +148,13 @@ class PrefLaplaceBoTorch(botorch_model.Model):
 
         # Mean must be `(B, Q*K)`
         K = self.num_outputs
-        mean_y = mean_y.reshape(B, Q*K)
+        mean_y = mean_y.reshape(B, Q * K)
 
         # Cov must be `(B, Q*K, Q*K)`
-        cov_y += self.bnn.sigma_noise**2 * torch.eye(B*Q*K, device=self.device)
+        cov_y += self.bnn.sigma_noise**2 * torch.eye(B * Q * K, device=self.device)
         cov_y = cov_y.reshape(B, Q, K, B, Q, K)
-        cov_y = torch.einsum('bqkbrl->bqkrl', cov_y)  # (B, Q, K, Q, K)
-        cov_y = cov_y.reshape(B, Q*K, Q*K)
+        cov_y = torch.einsum("bqkbrl->bqkrl", cov_y)  # (B, Q, K, Q, K)
+        cov_y = cov_y.reshape(B, Q * K, Q * K)
 
         dist = gdists.MultivariateNormal(mean_y, covariance_matrix=cov_y)
         post_pred = GPyTorchPosterior(dist)
@@ -163,12 +164,15 @@ class PrefLaplaceBoTorch(botorch_model.Model):
 
         return post_pred
 
-
-    def condition_on_observations(self, data: UserDict, **kwargs: Any) -> PrefLaplaceBoTorch:
+    def condition_on_observations(
+        self, data: UserDict, **kwargs: Any
+    ) -> PrefLaplaceBoTorch:
         # Append new observation to the current data
-        self.train_data['x_0'] = torch.cat([self.train_data['x_0'], data['x_0']], dim=0)
-        self.train_data['x_1'] = torch.cat([self.train_data['x_1'], data['x_1']], dim=0)
-        self.train_data['labels'] = torch.cat([self.train_data['labels'], data['labels']])
+        self.train_data["x_0"] = torch.cat([self.train_data["x_0"], data["x_0"]], dim=0)
+        self.train_data["x_1"] = torch.cat([self.train_data["x_1"], data["x_1"]], dim=0)
+        self.train_data["labels"] = torch.cat(
+            [self.train_data["labels"], data["labels"]]
+        )
 
         # Update Laplace with the updated data
         train_loader = self._get_train_loader()
@@ -187,9 +191,8 @@ class PrefLaplaceBoTorch(botorch_model.Model):
             n_epochs=self.n_epochs,
             lr=self.lr,
             wd=self.wd,
-            device=self.device
+            device=self.device,
         )
-
 
     def get_prediction(self, test_X: torch.Tensor, joint=True, use_test_loader=False):
         """
@@ -217,14 +220,14 @@ class PrefLaplaceBoTorch(botorch_model.Model):
             if joint is True. Otherwise, `(batch_shape, num_tasks, num_tasks)`.
         """
         if self.bnn is None:
-            raise Exception('Train your model first before making prediction!')
+            raise Exception("Train your model first before making prediction!")
 
         if not use_test_loader:
             mean_y, cov_y = self.bnn(test_X.to(self.device), joint=joint)
         else:
             test_loader = data_utils.DataLoader(
                 data_utils.TensorDataset(test_X, torch.zeros_like(test_X)),
-                batch_size=256
+                batch_size=256,
             )
 
             mean_y, cov_y = [], []
@@ -240,12 +243,10 @@ class PrefLaplaceBoTorch(botorch_model.Model):
 
         return mean_y, cov_y
 
-
     @property
     def num_outputs(self) -> int:
         """The number of outputs of the model."""
         return 1  # Always 1 for reward modeling
-
 
     def _train_model(self, train_loader):
         del self.bnn
@@ -255,18 +256,19 @@ class PrefLaplaceBoTorch(botorch_model.Model):
         if self.noise_var is not None:
             self.bnn.sigma_noise = math.sqrt(self.noise_var)
 
-
     def _posthoc_laplace(self, train_loader):
         net = self.get_net()  # Ensure that the base net is re-initialized
         optimizer = optim.Adam(net.parameters(), lr=self.lr, weight_decay=self.wd)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, self.n_epochs*len(train_loader))
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, self.n_epochs * len(train_loader)
+        )
         loss_func = nn.CrossEntropyLoss()
 
         for _ in range(self.n_epochs):
             for data in train_loader:
                 optimizer.zero_grad()
                 output = net(data)
-                loss = loss_func(output, data['labels'])
+                loss = loss_func(output, data["labels"])
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
@@ -293,19 +295,20 @@ class PrefLaplaceBoTorch(botorch_model.Model):
 
         # Laplace
         self.bnn = Laplace(
-            net, likelihood='reward_modeling',
+            net,
+            likelihood="reward_modeling",
             subset_of_weights=self.subset_of_weights,
             hessian_structure=self.hess_factorization,
             backend=self.backend,
-            enable_backprop=self.enable_backprop
+            enable_backprop=self.enable_backprop,
         )
         self.bnn.fit(train_loader)
         self.bnn.optimize_prior_precision(n_steps=self.posthoc_marglik_iters)
 
-
     def _get_train_loader(self):
         return data_utils.DataLoader(
             RewardDataset(self.train_data),
-            batch_size=self.batch_size, shuffle=True,
-            collate_fn=reward_data_collator
+            batch_size=self.batch_size,
+            shuffle=True,
+            collate_fn=reward_data_collator,
         )

@@ -128,9 +128,9 @@ def sample_pref_data(
 
     data_pref = UserDict(
         {
-            'x_0': torch.cat(x_0s, dim=0),
-            'x_1': torch.cat(x_1s, dim=0),
-            'labels': torch.cat(labels, dim=0),
+            "x_0": torch.cat(x_0s, dim=0),
+            "x_1": torch.cat(x_1s, dim=0),
+            "labels": torch.cat(labels, dim=0),
         }
     )
     included_idxs = np.array(included_idxs)
@@ -166,9 +166,9 @@ def subset_pref_data(
     """
     return UserDict(
         {
-            'x_0': pref_data['x_0'][subset_idxs],
-            'x_1': pref_data['x_1'][subset_idxs],
-            'labels': pref_data['labels'][subset_idxs],
+            "x_0": pref_data["x_0"][subset_idxs],
+            "x_1": pref_data["x_1"][subset_idxs],
+            "labels": pref_data["labels"][subset_idxs],
         }
     )
 
@@ -196,7 +196,7 @@ def is_pair_selected(x0: torch.Tensor, x1: torch.Tensor, pref_data: UserDict) ->
     selected: bool
         True if `(x0, x1)` is already in `pref_data`.
     """
-    for data_x0, data_x1 in zip(pref_data['x_0'], pref_data['x_1']):
+    for data_x0, data_x1 in zip(pref_data["x_0"], pref_data["x_1"]):
         if torch.allclose(x0, data_x0) and torch.allclose(x1, data_x1):
             return True
 

@@ -28,36 +28,36 @@ np.set_printoptions(precision=3)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--problem',
-    default='ackley10',
+    "--problem",
+    default="ackley10",
     choices=[
-        'levy10',
-        'ackley2',
-        'ackley10',
-        'hartmann6',
-        'rastrigin10',
-        'ackley10constrained',
-        'levy10constrained',
+        "levy10",
+        "ackley2",
+        "ackley10",
+        "hartmann6",
+        "rastrigin10",
+        "ackley10constrained",
+        "levy10constrained",
     ],
 )
-parser.add_argument('--method', default='la', choices=['la', 'gp'])
-parser.add_argument('--exp_len', type=int, default=250)
-parser.add_argument('--acqf', default='ts', choices=['ts', 'ei'])
+parser.add_argument("--method", default="la", choices=["la", "gp"])
+parser.add_argument("--exp_len", type=int, default=250)
+parser.add_argument("--acqf", default="ts", choices=["ts", "ei"])
 parser.add_argument(
-    '--acqf_pref',
-    default='random',
-    choices=['random', 'active_bald', 'active_large_diff', 'active_small_diff'],
+    "--acqf_pref",
+    default="random",
+    choices=["random", "active_bald", "active_large_diff", "active_small_diff"],
 )
-parser.add_argument('--with_expert', default=False, action='store_true')
-parser.add_argument('--expert_gamma', type=float, default=1.0)
-parser.add_argument('--expert_prob', type=float, default=0.1)
-parser.add_argument('--verbose', default=False, action='store_true')
-parser.add_argument('--device', default='cpu', choices=['cpu', 'mps', 'cuda'])
-parser.add_argument('--randseed', type=int, default=1)
+parser.add_argument("--with_expert", default=False, action="store_true")
+parser.add_argument("--expert_gamma", type=float, default=1.0)
+parser.add_argument("--expert_prob", type=float, default=0.1)
+parser.add_argument("--verbose", default=False, action="store_true")
+parser.add_argument("--device", default="cpu", choices=["cpu", "mps", "cuda"])
+parser.add_argument("--randseed", type=int, default=1)
 args = parser.parse_args()
 
-if args.with_expert and args.acqf == 'ei':
-    print('Thompson sampling is a must for expert feedback')
+if args.with_expert and args.acqf == "ei":
+    print("Thompson sampling is a must for expert feedback")
     sys.exit(1)
 
 assert 0 <= args.expert_prob <= 1
@@ -76,7 +76,7 @@ bounds = problem.bounds
 train_x = helpers.sample_x(20, bounds)
 train_y = true_f(train_x).reshape(-1, 1).to(args.device)
 
-if args.method == 'la':
+if args.method == "la":
 
     def get_net():
         return MLP(problem.dim, normalize_output=True)
@@ -90,9 +90,9 @@ if args.method == 'la':
         backend=CurvlinopsGGN,
         device=args.device,
     )
-elif args.method == 'gp':
+elif args.method == "gp":
     # Hotfix for a numerical issue (not PSD error)
-    n_epochs = 0 if args.problem == 'hartmann6' else 500
+    n_epochs = 0 if args.problem == "hartmann6" else 500
     model = MLLGP(train_x, train_y, n_epochs=n_epochs)
 
 
@@ -140,21 +140,21 @@ if args.with_expert:
 
 print()
 print(
-    f'Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, '
-    + 'gamma: {args.expert_gamma}, prob: {args.expert_prob}, '
-    + 'acqf_pref: {args.acqf_pref}, randseed: {args.randseed}'
+    f"Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, "
+    + "gamma: {args.expert_gamma}, prob: {args.expert_prob}, "
+    + "acqf_pref: {args.acqf_pref}, randseed: {args.randseed}"
 )
 print(
-    '----------------------------------------------------------------------------------'
+    "----------------------------------------------------------------------------------"
 )
 
 pbar = tqdm.trange(args.exp_len)
-pbar.set_description(f'[Best f(x) = {best_y:.3f}]')
+pbar.set_description(f"[Best f(x) = {best_y:.3f}]")
 
 # BO Loop
 for i in pbar:
     if not args.with_expert:
-        if args.acqf == 'ts':
+        if args.acqf == "ts":
             acqf = ThompsonSampling(model, maximize=problem.is_maximize).to(args.device)
         else:
             acqf = ExpectedImprovement(
@@ -191,17 +191,17 @@ for i in pbar:
             best_x = new_x
         trace_best_y.append(best_y)
 
-        desc = f'[Best f(x) = {best_y:.3f}, curr f(x) = {new_y.item():.3f}]'
+        desc = f"[Best f(x) = {best_y:.3f}, curr f(x) = {new_y.item():.3f}]"
     else:
         # `expert_random_prob` of the time, sample preference data
         # and update the expert surrogate
         if np.random.rand() <= args.expert_prob:
             N_NEW_PREF_DATA = 3
-            if args.acqf_pref == 'random':
+            if args.acqf_pref == "random":
                 new_train_pref = helpers.sample_pref_data(
                     model.orig_train_X, problem.get_preference, N_NEW_PREF_DATA
                 )
-            elif 'active' in args.acqf_pref:
+            elif "active" in args.acqf_pref:
                 # Randomly sample pairs to make the cost constant wrt. the size of X.
                 # Because, the num. of ordered pairs of X with size N is quadratic.
                 rand_train_pref, rand_idxs = helpers.sample_pref_data(
@@ -214,16 +214,16 @@ for i in pbar:
 
                 # Get the active learning acqf. vals.
                 with torch.no_grad():
-                    if args.acqf_pref == 'active_bald':
+                    if args.acqf_pref == "active_bald":
                         acqf = BALDForRewardModel(model_pref)
                     elif (
-                        args.acqf_pref == 'active_large_diff'
-                        or args.acqf_pref == 'active_small_diff'
+                        args.acqf_pref == "active_large_diff"
+                        or args.acqf_pref == "active_small_diff"
                     ):
                         acqf = ThompsonSamplingRewardDiff(model_pref)
 
                     acq_vals = acqf(rand_train_pref)
-                    acq_vals *= -1 if args.acqf_pref == 'active_small_diff' else 1
+                    acq_vals *= -1 if args.acqf_pref == "active_small_diff" else 1
 
                 # Get the top N_NEW_PREF_DATA
                 topk_idxs = torch.topk(acq_vals, k=N_NEW_PREF_DATA)[1]
@@ -255,7 +255,7 @@ for i in pbar:
             best_scal_y = scal_y_new
 
             if args.verbose:
-                print('New x!', best_x.squeeze().numpy())
+                print("New x!", best_x.squeeze().numpy())
                 print()
 
         trace_best_y.append(best_y)
@@ -263,8 +263,8 @@ for i in pbar:
         trace_best_scal_y.append(best_scal_y)
 
         desc = (
-            f'[f(x*): {best_y:.2f}, r(x*): {best_r:.2f}, scal_y*: {best_scal_y:.2f},'
-            + ' f(x): {new_y.item():.2f}, r(x): {new_r:.2f}, scal_y: {scal_y_new:.2f}]'
+            f"[f(x*): {best_y:.2f}, r(x*): {best_r:.2f}, scal_y*: {best_scal_y:.2f},"
+            + " f(x): {new_y.item():.2f}, r(x): {new_r:.2f}, scal_y: {scal_y_new:.2f}]"
         )
 
     pbar.set_description(desc)
@@ -273,32 +273,32 @@ for i in pbar:
     trace_best_x.append(best_x)
 
 # Save results
-problem_name = args.problem + ('-pref' if args.with_expert else '')
-path = f'results/toy/{problem_name}/{args.acqf_pref}/{args.method}'
+problem_name = args.problem + ("-pref" if args.with_expert else "")
+path = f"results/toy/{problem_name}/{args.acqf_pref}/{args.method}"
 if not os.path.exists(path):
     os.makedirs(path)
 
 if not args.with_expert:
-    np.save(f'{path}/trace_best-x_rs{args.randseed}.npy', trace_best_x)
+    np.save(f"{path}/trace_best-x_rs{args.randseed}.npy", trace_best_x)
 
-    if args.acqf == 'ts':
-        np.save(f'{path}/trace_best-y_rs{args.randseed}.npy', trace_best_y)
-    elif args.acqf == 'ei':
-        np.save(f'{path}/trace_best-y_ei_rs{args.randseed}.npy', trace_best_y)
+    if args.acqf == "ts":
+        np.save(f"{path}/trace_best-y_rs{args.randseed}.npy", trace_best_y)
+    elif args.acqf == "ei":
+        np.save(f"{path}/trace_best-y_ei_rs{args.randseed}.npy", trace_best_y)
 else:
 
     def args_to_name():
-        name = f'gamma{args.expert_gamma}_prob{args.expert_prob}'
+        name = f"gamma{args.expert_gamma}_prob{args.expert_prob}"
         return name
 
-    np.save(f'{path}/trace_best-x_{args_to_name()}_rs{args.randseed}.npy', trace_best_x)
-    np.save(f'{path}/trace_best-y_{args_to_name()}_rs{args.randseed}.npy', trace_best_y)
-    np.save(f'{path}/trace_best-r_{args_to_name()}_rs{args.randseed}.npy', trace_best_r)
+    np.save(f"{path}/trace_best-x_{args_to_name()}_rs{args.randseed}.npy", trace_best_x)
+    np.save(f"{path}/trace_best-y_{args_to_name()}_rs{args.randseed}.npy", trace_best_y)
+    np.save(f"{path}/trace_best-r_{args_to_name()}_rs{args.randseed}.npy", trace_best_r)
     np.save(
-        f'{path}/trace_best-scal-y_{args_to_name()}_rs{args.randseed}.npy',
+        f"{path}/trace_best-scal-y_{args_to_name()}_rs{args.randseed}.npy",
         trace_best_scal_y,
     )
     np.save(
-        f'{path}/best-x_{args_to_name()}_rs{args.randseed}.npy',
+        f"{path}/best-x_{args_to_name()}_rs{args.randseed}.npy",
         best_x.squeeze().numpy(),
     )
