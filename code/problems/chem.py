@@ -44,6 +44,8 @@ class DiscreteChemProblem(ABC):
         self.cand_feats = None  # List[Tensor(n_dim)]
         self.cand_objs = None  # List[float]
 
+        self.dim = None
+
     def get_dataloader(self, batch_size: int = 256) -> DataLoader:
         """
         Get the candidate data, each `(feat, target)`, in the form of a dataloader.
@@ -78,10 +80,10 @@ class DiscreteChemProblem(ABC):
         obj: float
         """
         smiles = self.cand_smiles.pop(idx)
-        self.cand_feats.pop(idx)
+        feats = self.cand_feats.pop(idx)
         obj = self.cand_objs.pop(idx)
 
-        return smiles, obj
+        return smiles, feats, obj
 
     def get_preference(self, smiles0: str, smiles1: str) -> int:
         """
@@ -128,7 +130,14 @@ class DiscreteChemProblem(ABC):
             return torch.load(f"{path}/feats_{self.feature_type}.pt")
 
     def _validate(self) -> bool:
-        names = ["data_pd_orig", "SMILES_COL", "OBJ_COL", "cand_smiles", "cand_objs"]
+        names = [
+            "data_pd_orig",
+            "SMILES_COL",
+            "OBJ_COL",
+            "cand_smiles",
+            "cand_objs",
+            "dim",
+        ]
 
         for name in names:
             if getattr(self, name) is None:
@@ -136,20 +145,27 @@ class DiscreteChemProblem(ABC):
 
         return True
 
+    def __len__(self):
+        return len(self.cand_smiles)
 
-class KinaseMolSkill(DiscreteChemProblem):
+
+class Kinase(DiscreteChemProblem):
 
     def __init__(self, feature_type: str, is_maximize: bool) -> None:
         super().__init__(feature_type, is_maximize)
 
         self.problem_name = "Kinase"
-        self.data_pd_orig = pd.read_csv(f"{self.DATA_DIR}/enamine10k.csv.gz")
+        self.data_pd_orig = pd.read_csv(
+            f"{self.DATA_DIR}/enamine10k_kinase_filtered.csv.gz"
+        )
         self.SMILES_COL = "SMILES"
         self.OBJ_COL = "score"
 
         self.cand_smiles = self.data_pd_orig[self.SMILES_COL].to_list()
         self.cand_objs = self.data_pd_orig[self.OBJ_COL].to_list()
         self.cand_feats = self._get_features()
+
+        self.dim = self.cand_feats[0].shape
 
         self._validate()
 
@@ -159,7 +175,7 @@ class KinaseMolSkill(DiscreteChemProblem):
         return self.scorer(smiles)
 
 
-class ReaxysMPScore(DiscreteChemProblem):
+class Reaxys(DiscreteChemProblem):
 
     def __init__(self, feature_type: str, is_maximize: bool) -> None:
         super().__init__(feature_type, is_maximize)
@@ -181,5 +197,10 @@ class ReaxysMPScore(DiscreteChemProblem):
         return self.scorer(smiles)
 
 
+PROBLEM_LIST = {
+    "kinase": Kinase,
+}
+
+
 if __name__ == "__main__":
-    problem = KinaseMolSkill(feature_type="fingerprints", is_maximize=True)
+    problem = Kinase(feature_type="fingerprints", is_maximize=True)

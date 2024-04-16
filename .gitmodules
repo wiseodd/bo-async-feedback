@@ -3,7 +3,7 @@
 	url = https://git.overleaf.com/65c69e0977ac316bc29edf15
 [submodule "code/synthetic_accessibility_project"]
 	path = code/synthetic_accessibility_project
-	url = git@github.com:stevenkbennett/synthetic_accessibility_project.git
+	url = git@github.com:wiseodd/synthetic_accessibility_project.git
 [submodule "code/molskill"]
 	path = code/molskill
 	url = git@github.com:microsoft/molskill.git
