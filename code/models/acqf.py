@@ -57,6 +57,11 @@ class ThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
         """
         mean, std = self._mean_and_sigma(x)
 
+        if len(mean.shape) == 0:
+            mean = mean.unsqueeze(0)
+        if len(std.shape) == 0:
+            std = std.unsqueeze(0)
+
         # Thompson sample; deterministic via the random state
         generator = torch.Generator(device=x.device).manual_seed(self.random_state)
         eps = torch.randn(*std.shape, device=x.device, generator=generator)
@@ -114,7 +119,16 @@ class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
         x1.to(self.model.device)
 
         mean0, std0 = self._mean_and_sigma(x0)
+        if len(mean0.shape) == 0:
+            mean0 = mean0.unsqueeze(0)
+        if len(std0.shape) == 0:
+            std0 = std0.unsqueeze(0)
+
         mean1, std1 = self._mean_and_sigma(x1)
+        if len(mean1.shape) == 0:
+            mean1 = mean1.unsqueeze(0)
+        if len(std1.shape) == 0:
+            std1 = std1.unsqueeze(0)
 
         # Thompson sample; deterministic via the random state
         generator = torch.Generator(device=x0.device).manual_seed(self.random_state)
@@ -163,7 +177,17 @@ class BALDForRewardModel(AnalyticAcquisitionFunction):
         x1.to(self.model.device)
 
         mean0, std0 = self._mean_and_sigma(x0)
+        if len(mean0.shape) == 0:
+            mean0 = mean0.unsqueeze(0)
+        if len(std0.shape) == 0:
+            std0 = std0.unsqueeze(0)
+
         mean1, std1 = self._mean_and_sigma(x1)
+        if len(mean1.shape) == 0:
+            mean1 = mean1.unsqueeze(0)
+        if len(std1.shape) == 0:
+            std1 = std1.unsqueeze(0)
+
         means = torch.stack([mean0, mean1]).T
         variances = (torch.stack([std0, std1]).T) ** 2
 

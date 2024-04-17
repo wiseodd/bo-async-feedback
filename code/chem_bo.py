@@ -260,6 +260,7 @@ for i in pbar:
         scal_y_new = scalarize(
             helpers.y_transform(new_y, model.orig_train_Y).item(), new_r
         )
+        # Scalarized objective is always a maximization
         if scal_y_new > scal_y_old:
             best_x = new_x
             best_y = new_y.item()
