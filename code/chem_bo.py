@@ -31,9 +31,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--problem",
     default="kinase",
-    choices=[
-        "kinase",
-    ],
+    choices=["kinase", "ampc", "d4"],
 )
 parser.add_argument("--feats", default="fingerprints", choices=["fingerprints"])
 parser.add_argument("--method", default="la", choices=["la", "gp"])

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Any, List, Tuple
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
@@ -30,22 +30,39 @@ class DiscreteChemProblem(ABC):
     DATA_DIR = "./data"
     CACHE_DIR = "./cache"
 
-    def __init__(self, feature_type: str, is_maximize: bool) -> None:
+    def __init__(
+        self,
+        feature_type: str,
+        is_maximize: bool,
+        problem_name: str,
+        csv_path: str,
+        smiles_col: str,
+        obj_col: str,
+        scorer: Any,
+    ) -> None:
         assert feature_type in ["fingerprints"]
         self.feature_type = feature_type
         self.is_maximize = is_maximize
+        self.problem_name = problem_name
+        self.data_pd_orig = pd.read_csv(csv_path)
+        self.SMILES_COL = smiles_col
+        self.OBJ_COL = obj_col
+        self.scorer = scorer
 
-        # To be overloaded
-        self.problem_name = None
-        self.data_pd_orig = None
-        self.SMILES_COL = None
-        self.OBJ_COL = None
-
-        self.cand_smiles = None  # List[str]
-        self.cand_feats = None  # List[Tensor(n_dim)]
-        self.cand_objs = None  # List[float]
-
-        self.dim = None
+        # Populate D_cand, consisting of candidate SMILES, cand's objectives
+        # and cand's features
+        self.cand_smiles = self.data_pd_orig[self.SMILES_COL].to_list()
+        self.cand_objs = list(
+            torch.from_numpy(self.data_pd_orig[self.OBJ_COL].to_numpy())
+            .float()
+            .unsqueeze(1)
+        )
+        assert len(self.cand_objs) == len(self.cand_smiles)
+        assert self.cand_objs[0].shape == (1,)
+        self.cand_feats = self._get_features()
+        assert len(self.cand_feats[0].shape) == 1
+        self.dim = self.cand_feats[0].shape[0]
+        self._validate()
 
     def get_dataloader(self, batch_size: int = 256) -> DataLoader:
         """
@@ -116,11 +133,13 @@ class DiscreteChemProblem(ABC):
             os.makedirs(path)
 
         # Cache features if not already exists
-        if force or not os.path.exists(f"{path}/{self.feature_type}.pt"):
+        if force or not os.path.exists(f"{path}/feats_{self.feature_type}.pt"):
             match self.feature_type:
                 case "fingerprints":
                     feats = []
-                    for smiles in tqdm(self.data_pd_orig[self.SMILES_COL]):
+                    pbar = tqdm(self.data_pd_orig[self.SMILES_COL])
+                    pbar.set_description(f"[Caching features]")
+                    for smiles in pbar:
                         fp = AllChem.GetMorganFingerprintAsBitVect(
                             Chem.MolFromSmiles(smiles), radius=2, nBits=1024
                         )
@@ -156,53 +175,49 @@ class DiscreteChemProblem(ABC):
 class Kinase(DiscreteChemProblem):
 
     def __init__(self, feature_type: str) -> None:
-        super().__init__(feature_type, is_maximize=False)
-
-        self.problem_name = "Kinase"
-        self.data_pd_orig = pd.read_csv(
-            f"{self.DATA_DIR}/enamine10k_kinase_filtered.csv.gz"
+        super().__init__(
+            feature_type,
+            is_maximize=False,
+            problem_name="Kinase",
+            csv_path=f"{self.DATA_DIR}/enamine10k_kinase_filtered.csv.gz",
+            smiles_col="SMILES",
+            obj_col="score",
+            scorer=MolSkillScorer(),
         )
-        self.SMILES_COL = "SMILES"
-        self.OBJ_COL = "score"
-
-        self.cand_smiles = self.data_pd_orig[self.SMILES_COL].to_list()
-        self.cand_objs = list(
-            torch.from_numpy(self.data_pd_orig[self.OBJ_COL].to_numpy())
-            .float()
-            .unsqueeze(1)
-        )
-        assert len(self.cand_objs) == len(self.cand_smiles)
-        assert self.cand_objs[0].shape == (1,)
-        self.cand_feats = self._get_features()
-
-        assert len(self.cand_feats[0].shape) == 1
-        self.dim = self.cand_feats[0].shape[0]
-
-        self._validate()
-
-        self.scorer = MolSkillScorer()
 
     def _score(self, smiles: str) -> float:
         return self.scorer(smiles)
 
 
-class Reaxys(DiscreteChemProblem):
+class AmpC(DiscreteChemProblem):
 
-    def __init__(self, feature_type: str, is_maximize: bool) -> None:
-        super().__init__(feature_type, is_maximize)
+    def __init__(self, feature_type: str) -> None:
+        super().__init__(
+            feature_type,
+            is_maximize=False,
+            problem_name="AmpC",
+            csv_path=f"{self.DATA_DIR}/Zinc_AmpC_Docking_filtered.csv",
+            smiles_col="SMILES",
+            obj_col="dockscore",
+            scorer=MolSkillScorer(),
+        )
 
-        self.problem_name = "Reaxys"
-        self.data_pd_orig = pd.read_csv(f"{self.DATA_DIR}/reaxys_database.csv")
-        self.SMILES_COL = "smiles"
-        self.OBJ_COL = "score"
+    def _score(self, smiles: str) -> float:
+        return self.scorer(smiles)
 
-        self.cand_smiles = self.data_pd_orig[self.SMILES_COL].to_list()
-        self.cand_objs = self.data_pd_orig[self.OBJ_COL].to_list()
-        self.cand_feats = self._get_features()
 
-        self._validate()
+class D4(DiscreteChemProblem):
 
-        self.scorer = MPScore()
+    def __init__(self, feature_type: str) -> None:
+        super().__init__(
+            feature_type,
+            is_maximize=False,
+            problem_name="D4",
+            csv_path=f"{self.DATA_DIR}/Zinc_D4_Docking_filtered.csv",
+            smiles_col="SMILES",
+            obj_col="dockscore",
+            scorer=MolSkillScorer(),
+        )
 
     def _score(self, smiles: str) -> float:
         return self.scorer(smiles)
@@ -210,6 +225,8 @@ class Reaxys(DiscreteChemProblem):
 
 PROBLEM_LIST = {
     "kinase": Kinase,
+    "ampc": AmpC,
+    "d4": D4,
 }
 
 
