@@ -106,25 +106,28 @@ class DiscreteChemProblem(ABC):
 
         return smiles, feats, obj
 
-    def get_preference(self, smiles0: str, smiles1: str) -> int:
+    def get_preference(self, smiles0: List[str], smiles1: List[str]) -> int:
         """
         Given a pair of smiles, return 0 if the first one is preferred,
-        otherwise return 1.
+        otherwise return 1. Accept list for batch processing.
 
         Parameters:
         -----------
-        smiles0: str
-        smiles1: str
+        smiles0: List[str]
+        smiles1: List[str]
 
         Returns:
         --------
-        label: int
-            Either 0 or 1, depending which x's is preferred
+        label: List[int]
+            Either 0 or 1, depending which x's is preferred; shape `(len(smiles0), 1)`
         """
-        return np.argmax([self._score(smiles0), self._score(smiles1)])
+        assert len(smiles0) == len(smiles1)
+        # Shape `(len(smiles0), 2)`
+        scores = np.stack([self._score(smiles0), self._score(smiles1)]).T
+        return np.argmax(scores, axis=1, keepdims=True)
 
     @abstractmethod
-    def _score(self, smiles: str) -> float:
+    def _score(self, smiles: List[str]) -> float:
         raise NotImplementedError
 
     def _get_features(self, force: bool = False) -> None:
@@ -172,7 +175,32 @@ class DiscreteChemProblem(ABC):
         return len(self.cand_smiles)
 
 
-class Kinase(DiscreteChemProblem):
+class MolSkillProblem(DiscreteChemProblem, ABC):
+
+    def __init__(
+        self,
+        feature_type: str,
+        is_maximize: bool,
+        problem_name: str,
+        csv_path: str,
+        smiles_col: str,
+        obj_col: str,
+    ) -> None:
+        super().__init__(
+            feature_type,
+            is_maximize,
+            problem_name,
+            csv_path,
+            smiles_col,
+            obj_col,
+            scorer=MolSkillScorer(num_workers=0, verbose=False),
+        )
+
+    def _score(self, smiles: List[str]) -> float:
+        return self.scorer.score(smiles)
+
+
+class Kinase(MolSkillProblem):
 
     def __init__(self, feature_type: str) -> None:
         super().__init__(
@@ -182,14 +210,10 @@ class Kinase(DiscreteChemProblem):
             csv_path=f"{self.DATA_DIR}/enamine10k_kinase_filtered.csv.gz",
             smiles_col="SMILES",
             obj_col="score",
-            scorer=MolSkillScorer(),
         )
 
-    def _score(self, smiles: str) -> float:
-        return self.scorer(smiles)
 
-
-class AmpC(DiscreteChemProblem):
+class AmpC(MolSkillProblem):
 
     def __init__(self, feature_type: str) -> None:
         super().__init__(
@@ -199,14 +223,10 @@ class AmpC(DiscreteChemProblem):
             csv_path=f"{self.DATA_DIR}/Zinc_AmpC_Docking_filtered.csv",
             smiles_col="SMILES",
             obj_col="dockscore",
-            scorer=MolSkillScorer(),
         )
 
-    def _score(self, smiles: str) -> float:
-        return self.scorer(smiles)
 
-
-class D4(DiscreteChemProblem):
+class D4(MolSkillProblem):
 
     def __init__(self, feature_type: str) -> None:
         super().__init__(
@@ -216,11 +236,7 @@ class D4(DiscreteChemProblem):
             csv_path=f"{self.DATA_DIR}/Zinc_D4_Docking_filtered.csv",
             smiles_col="SMILES",
             obj_col="dockscore",
-            scorer=MolSkillScorer(),
         )
-
-    def _score(self, smiles: str) -> float:
-        return self.scorer(smiles)
 
 
 PROBLEM_LIST = {

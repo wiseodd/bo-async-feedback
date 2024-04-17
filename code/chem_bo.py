@@ -13,7 +13,7 @@ from gpytorch.kernels import ScaleKernel
 import problems.chem as chem_probs
 from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch
-from models.reward import ToyRewardModel
+from models.reward import RewardModel
 from models.acqf import (
     ThompsonSamplingRewardDiff,
     ThompsonSamplingWithExpertPref,
@@ -35,16 +35,16 @@ parser.add_argument(
 )
 parser.add_argument("--feats", default="fingerprints", choices=["fingerprints"])
 parser.add_argument("--method", default="la", choices=["la", "gp"])
-parser.add_argument("--exp_len", type=int, default=250)
+parser.add_argument("--exp-len", type=int, default=250)
 parser.add_argument("--acqf", default="ts", choices=["ts", "ei"])
 parser.add_argument(
     "--acqf_pref",
     default="random",
     choices=["random", "active_bald", "active_large_diff", "active_small_diff"],
 )
-parser.add_argument("--with_expert", default=False, action="store_true")
-parser.add_argument("--expert_gamma", type=float, default=1.0)
-parser.add_argument("--expert_prob", type=float, default=0.1)
+parser.add_argument("--with-expert", default=False, action="store_true")
+parser.add_argument("--expert-gamma", type=float, default=1.0)
+parser.add_argument("--expert-prob", type=float, default=0.1)
 parser.add_argument("--verbose", default=False, action="store_true")
 parser.add_argument("--device", default="cpu", choices=["cpu", "mps", "cuda"])
 parser.add_argument("--randseed", type=int, default=1)
@@ -108,13 +108,17 @@ elif args.method == "gp":
 if args.with_expert:
     # Gather initial preference dataset
     train_pref, train_pair_idxs = helpers.sample_pref_data(
-        model.train_smiles, problem.get_preference, 10, output_indices=True
+        train_X,
+        problem.get_preference,
+        10,
+        output_indices=True,
+        source_smiles=train_smiles,
     )
     train_pair_idxs = list(map(tuple, train_pair_idxs))  # list of 2-tuples
 
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
-        lambda: ToyRewardModel(dim=problem.dim),
+        lambda: RewardModel(dim=problem.dim),
         train_pref,
         noise_var=1e-2,
         batch_size=1024,
@@ -203,7 +207,10 @@ for i in pbar:
             N_NEW_PREF_DATA = 3
             if args.acqf_pref == "random":
                 new_train_pref = helpers.sample_pref_data(
-                    model.orig_train_X, problem.get_preference, N_NEW_PREF_DATA
+                    model.orig_train_X,
+                    problem.get_preference,
+                    N_NEW_PREF_DATA,
+                    source_smiles=train_smiles,
                 )
             elif "active" in args.acqf_pref:
                 # Randomly sample pairs to make the cost constant wrt. the size of X.
@@ -214,6 +221,7 @@ for i in pbar:
                     2000,
                     exclude_indices=train_pair_idxs,
                     output_indices=True,
+                    source_smiles=train_smiles,
                 )
 
                 # Get the active learning acqf. vals.

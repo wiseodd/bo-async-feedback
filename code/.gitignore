@@ -9,3 +9,5 @@ laplace_models/
 *.out
 
 cache/
+
+lightning_logs/

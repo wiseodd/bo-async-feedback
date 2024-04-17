@@ -3,7 +3,7 @@ from torch import nn
 from collections import UserDict
 
 
-class ToyRewardModel(nn.Module):
+class RewardModel(nn.Module):
 
     def __init__(self, dim):
         super().__init__()
@@ -44,7 +44,7 @@ class ToyRewardModel(nn.Module):
             return out
 
 
-class ToyRewardModelWithOutput(nn.Module):
+class RewardModelWithOutput(nn.Module):
 
     def __init__(self, dim):
         super().__init__()

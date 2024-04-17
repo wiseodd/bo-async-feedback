@@ -12,7 +12,7 @@ from laplace_bayesopt.acqf import ThompsonSampling
 import problems.toy as toy_problems
 from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch
-from models.reward import ToyRewardModel
+from models.reward import RewardModel
 from models.acqf import (
     ThompsonSamplingRewardDiff,
     ThompsonSamplingWithExpertPref,
@@ -41,16 +41,16 @@ parser.add_argument(
     ],
 )
 parser.add_argument("--method", default="la", choices=["la", "gp"])
-parser.add_argument("--exp_len", type=int, default=250)
+parser.add_argument("--exp-len", type=int, default=250)
 parser.add_argument("--acqf", default="ts", choices=["ts", "ei"])
 parser.add_argument(
     "--acqf_pref",
     default="random",
     choices=["random", "active_bald", "active_large_diff", "active_small_diff"],
 )
-parser.add_argument("--with_expert", default=False, action="store_true")
-parser.add_argument("--expert_gamma", type=float, default=1.0)
-parser.add_argument("--expert_prob", type=float, default=0.1)
+parser.add_argument("--with-expert", default=False, action="store_true")
+parser.add_argument("--expert-gamma", type=float, default=1.0)
+parser.add_argument("--expert-prob", type=float, default=0.1)
 parser.add_argument("--verbose", default=False, action="store_true")
 parser.add_argument("--device", default="cpu", choices=["cpu", "mps", "cuda"])
 parser.add_argument("--randseed", type=int, default=1)
@@ -108,7 +108,7 @@ if args.with_expert:
 
     # Surrogate to model expert preferences
     model_pref = PrefLaplaceBoTorch(
-        lambda: ToyRewardModel(dim=problem.dim),
+        lambda: RewardModel(dim=problem.dim),
         train_pref,
         noise_var=1e-2,
         batch_size=1024,

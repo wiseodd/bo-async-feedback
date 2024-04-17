@@ -3,10 +3,9 @@ import torch.distributions as dists
 import itertools
 import numpy as np
 from collections import UserDict
-import torchmetrics as tm
 from botorch.models.transforms.outcome import Standardize
 
-from typing import *
+from typing import Iterable, List
 
 
 def y_transform(new_y, train_Y):
@@ -67,7 +66,12 @@ def sample_pair_idxs(source, num_samples):
 
 
 def sample_pref_data(
-    source, pref_func, num_samples, exclude_indices=[], output_indices=False
+    source,
+    pref_func,
+    num_samples,
+    exclude_indices=[],
+    output_indices=False,
+    source_smiles: List[str] = None,
 ):
     """
     Sample preference data list (x_0, x_1, label) from source.
@@ -77,6 +81,10 @@ def sample_pref_data(
     Parameters:
     -----------
     source: Iterable
+
+    source_smiles: List[String]
+        List of string of the same length as `source`. The SMILES of index `i` must
+        correspond to the features `x_i` in the i-th index of `source`.
 
     pref_func: Callable
         Takes two tensors, outputs 0 or 1
@@ -106,6 +114,14 @@ def sample_pref_data(
     indices: np.array of ints shape (n, 2), optional
         When `output_indices = True`
     """
+    if source_smiles is not None:
+        if len(source_smiles) != len(source):
+            raise ValueError(
+                "`source_smiles` provided but has different length than `source`"
+            )
+
+        smiles_lst_0, smiles_lst_1 = [], []
+
     idx_pairs = sample_pair_idxs(source, num_samples)
     x_0s, x_1s, labels = [], [], []
     included_idxs = []
@@ -117,14 +133,25 @@ def sample_pref_data(
         x_0, x_1 = source[idx_pair[0]].unsqueeze(0), source[idx_pair[1]].unsqueeze(0)
         x_0s.append(x_0)
         x_1s.append(x_1)
-        labels.append(
-            torch.tensor(pref_func(x_0, x_1))
-            .long()
-            .reshape(
-                1,
+
+        if source_smiles is not None:
+            smiles_lst_0.append(source_smiles[idx_pair[0]])
+            smiles_lst_1.append(source_smiles[idx_pair[1]])
+        else:
+            labels.append(
+                torch.tensor(pref_func(x_0, x_1))
+                .long()
+                .reshape(
+                    1,
+                )
             )
-        )
+
         included_idxs.append(idx_pair)
+
+    if source_smiles is not None:
+        # Get preferences in batch
+        labels = pref_func(smiles_lst_0, smiles_lst_1)
+        labels = list(torch.from_numpy(labels).long())
 
     data_pref = UserDict(
         {
