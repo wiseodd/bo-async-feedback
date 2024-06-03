@@ -1,29 +1,24 @@
-import numpy as np
-import torch
-import tqdm
-
-from laplace.curvature import CurvlinopsGGN, AsdlGGN
-from laplace_bayesopt.botorch import LaplaceBoTorch
-from laplace_bayesopt.acqf import ThompsonSampling
-
-from botorch.acquisition.analytic import ExpectedImprovement
-from gauche.kernels.fingerprint_kernels.tanimoto_kernel import TanimotoKernel
-from gpytorch.kernels import ScaleKernel
-
-import problems.chem as chem_probs
-from models.surrogate import MLLGP, MLP
-from models.surrogate_pref import PrefLaplaceBoTorch
-from models.reward import RewardModel
-from models.acqf import (
-    ThompsonSamplingRewardDiff,
-    ThompsonSamplingWithExpertPref,
-    BALDForRewardModel,
-)
-from utils import helpers
-
 import argparse
 import os
 import sys
+
+import numpy as np
+import torch
+import tqdm
+from botorch.acquisition.analytic import ExpectedImprovement
+from gauche.kernels.fingerprint_kernels.tanimoto_kernel import TanimotoKernel
+from gpytorch.kernels import ScaleKernel
+from laplace.curvature import AsdlGGN, CurvlinopsGGN
+from laplace_bayesopt.acqf import ThompsonSampling
+from laplace_bayesopt.botorch import LaplaceBoTorch
+
+import problems.chem as chem_probs
+from models.acqf import (BALDForRewardModel, ThompsonSamplingRewardDiff,
+                         ThompsonSamplingWithExpertPref)
+from models.reward import RewardModel
+from models.surrogate import MLLGP, MLP
+from models.surrogate_pref import PrefLaplaceBoTorch
+from utils import helpers
 
 np.set_printoptions(precision=3)
 
