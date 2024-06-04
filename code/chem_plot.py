@@ -1,11 +1,12 @@
-import numpy as np
-import scipy.stats as st
-import matplotlib.pyplot as plt
 import utils.plot as plot_utils
 import argparse
 import os
+import numpy as np
+import scipy.stats as st
+import matplotlib.pyplot as plt
 
-import problems.toy as toy_problems
+import problems.chem as chem_problems
+
 
 plt.style.use("bmh")
 
@@ -20,15 +21,20 @@ args = parser.parse_args()
 if args.layout == "aabi":
     args.layout = "jmlr"
 
-PROBLEMS = ["ackley10", "levy10", "rastrigin10", "hartmann6"]
+PROBLEMS = ["kinase", "ampc", "d4"]
 PROBLEM2TITLE = {
-    "ackley10": r"Ackley $d = 10$ ($\downarrow$)",
-    "hartmann6": r"Hartmann $d = 6$ ($\downarrow$)",
-    "levy10": r"Levy $d = 10$ ($\downarrow$)",
-    "rastrigin10": r"Rastrigin $d = 10$ ($\downarrow$)",
+    "kinase": r"Kinase",
+    "ampc": r"AmpC",
+    "d4": r"D4",
 }
-METHODS_BASE = ["gp", "la"]
-METHODS_PREF = ["gp", "la"]
+METHODS_BASE = [
+    "gp",
+    # "la",
+]
+METHODS_PREF = [
+    "gp",
+    # "la",
+]
 METHOD2LABEL = {
     "gp": "GP",
     "la": "LA",
@@ -51,15 +57,20 @@ fig, axs = plt.subplots(1, len(PROBLEMS), sharex=True, constrained_layout=True)
 fig.set_size_inches(fig_width, fig_height)
 
 for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
-    problem_obj = toy_problems.PROBLEM_LIST[problem]()
+    # Get optimal val for f(x)
+    problem_obj = chem_problems.PROBLEM_LIST[problem](feature_type="fingerprints")
+    best_val = (
+        max(problem_obj.cand_objs)
+        if problem_obj.is_maximize
+        else min(problem_obj.cand_objs)
+    )
 
     # Plot optimal val for f(x)
-    best_val = problem_obj.get_function().optimal_value
     ax.axhline(best_val, c="k", ls="dashed", zorder=1000)
 
     # Plot base BO methods
     for method in METHODS_BASE:
-        path = f"results/toy/{problem}/{method}"
+        path = f"results/chem/{problem}/random/{method}"
 
         trace_best_y = np.stack(
             [np.load(f"{path}/trace_best-y_rs{rs}.npy") for rs in RANDSEEDS]
@@ -81,9 +92,8 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         )
 
     # Plot BO methods with preferences
-    # if problem in ['ackley10', 'levy10', 'hartmann6']:
     for method_pref in METHODS_PREF:
-        path = f"results/toy/{problem}-pref/random/{method_pref}"
+        path = f"results/chem/{problem}-pref/random/{method_pref}"
 
         trace_best_y = np.stack(
             [
@@ -134,7 +144,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         ax.set_xlabel(r"$t$")
 
     if i == 0:  # Only the left-most
-        ax.set_ylabel(r"$f(x_*)$")
+        ax.set_ylabel(r"Docking Score $(\downarrow)$")
 
     ax.set_xlim(0, 250)
 
@@ -150,5 +160,5 @@ else:
 if not os.path.exists(path):
     os.makedirs(path)
 
-fname = f"toy_bo_prob{args.expert_prob}"
+fname = f"chem_bo_prob{args.expert_prob}"
 plt.savefig(f"{path}/{fname}.pdf")
