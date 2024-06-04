@@ -6,7 +6,7 @@ sbatch <<EOT
 #SBATCH -c 8
 #SBATCH --qos=cpu_qos
 #SBATCH --time=36:00:00
-#SBATCH --array=1,2,3,4,5
+#SBATCH --array=6,7,8,9,10
 #SBATCH --job-name=chem_${1}_${2}_${3}_${4}
 #SBATCH --output=run_%A_%a.out
 #SBATCH --mail-type=ALL

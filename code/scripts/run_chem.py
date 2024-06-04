@@ -1,17 +1,21 @@
 import subprocess
 
-PROBLEMS = ["kinase", "ampc", "d4"]
+PROBLEMS = [
+    "kinase",
+    # "ampc",
+    # "d4"
+]
 METHODS = [
     "gp",
-    "la",
+    # "la",
 ]
 WITH_EXPERT = [
     True,
-    False,
+    # False,
 ]
 EXPERT_PROBS = [
     "0.1",
-    "0.25",
+    # "0.25",
 ]
 
 # Run sbatch
