@@ -27,6 +27,11 @@ PROBLEM2TITLE = {
     "ampc": r"AmpC",
     "d4": r"D4",
 }
+PROBLEM2YLIM = {
+    "kinase": (-9.95, -8.75),
+    "ampc": (-85, -40),
+    "d4": (-67, -35),
+}
 METHODS_BASE = [
     "gp",
     # "la",
@@ -147,6 +152,7 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
         ax.set_ylabel(r"Docking Score $(\downarrow)$")
 
     ax.set_xlim(0, 250)
+    ax.set_ylim(*PROBLEM2YLIM[problem])
 
     if i == 0 and not args.no_legend:
         ax.legend(loc="best", title="Methods")
