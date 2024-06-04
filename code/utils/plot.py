@@ -4,6 +4,7 @@ import matplotlib.font_manager as font_manager
 cmfont = font_manager.FontProperties(fname=mpl.get_data_path() + "/fonts/ttf/cmr10.ttf")
 FONT_NAME_CM = cmfont.get_name()
 FONT_NAME_TNR = "Times New Roman"
+FONT_NAME_AVENIR = "Avenir Next Condensed"
 
 PAPER_FORMATS = {
     "icml": {
@@ -30,6 +31,18 @@ PAPER_FORMATS = {
         "text_height": 8.50166,
         "font_name": FONT_NAME_CM,
     },
+    "poster-landscape": {
+        "text_width": 6.00117,
+        "col_width": 6.00117,
+        "text_height": 8.50166,
+        "font_name": FONT_NAME_AVENIR,
+    },
+    "poster-portrait": {
+        "text_width": 6.00117,
+        "col_width": 6.00117,
+        "text_height": 8.50166,
+        "font_name": FONT_NAME_AVENIR,
+    },
 }
 
 FOOTNOTE_SIZE = 8
@@ -37,7 +50,11 @@ SCRIPT_SIZE = 7
 
 
 def get_mpl_rcParams(width_percent, height_percent, single_col=False, layout="neurips"):
-    assert layout in ["neurips", "iclr", "icml", "jmlr"]
+    if layout not in PAPER_FORMATS.keys():
+        raise ValueError(f"Layout must be in {list(PAPER_FORMATS.keys())}.")
+
+    if layout not in ["icml"] and not single_col:
+        raise ValueError("Double-column is only supported for ICML.")
 
     params = {
         "text.usetex": False,
