@@ -7,3 +7,6 @@
 [submodule "code/molskill"]
 	path = code/molskill
 	url = git@github.com:wiseodd/molskill.git
+[submodule "poster"]
+	path = poster
+	url = https://git.overleaf.com/665f84f05dee773247d1ab91
