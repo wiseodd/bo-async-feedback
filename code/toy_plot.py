@@ -1,17 +1,18 @@
-import numpy as np
-import scipy.stats as st
-import matplotlib.pyplot as plt
-import utils.plot as plot_utils
 import argparse
 import os
 
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats as st
+
 import problems.toy as toy_problems
+import utils.plot as plot_utils
 
 plt.style.use("bmh")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--expert-prob", type=float, default=0.1)
-parser.add_argument("--layout", default="aabi", choices=["aabi", "neurips"])
+parser.add_argument("--layout", default="aabi", choices=["aabi", "poster"])
 parser.add_argument("--no-title", default=False, action="store_true")
 parser.add_argument("--no-xaxis", default=False, action="store_true")
 parser.add_argument("--no-legend", default=False, action="store_true")
@@ -19,6 +20,11 @@ args = parser.parse_args()
 
 if args.layout == "aabi":
     args.layout = "jmlr"
+
+if args.layout == "poster":
+    args.layout = "poster-portrait"
+
+IS_POSTER = "poster" in args.layout
 
 PROBLEMS = ["ackley10", "levy10", "rastrigin10", "hartmann6"]
 PROBLEM2TITLE = {
@@ -132,6 +138,8 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
 
     if not args.no_xaxis:
         ax.set_xlabel(r"$t$")
+    else:
+        ax.set_xticks([])
 
     if i == 0:  # Only the left-most
         ax.set_ylabel(r"$f(x_*)$")
@@ -139,11 +147,11 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     ax.set_xlim(0, 250)
 
     if i == 0 and not args.no_legend:
-        ax.legend(loc="best", title="Methods")
+        ax.legend(loc="best", title="Methods" if not IS_POSTER else None)
 
 # Save results
-if args.layout == "neurips":
-    path = "../paper/figs"
+if IS_POSTER:
+    path = "../poster/figs"
 else:
     path = "../paper/figs_aabi"
 
@@ -151,4 +159,5 @@ if not os.path.exists(path):
     os.makedirs(path)
 
 fname = f"toy_bo_prob{args.expert_prob}"
+fname += "_poster" if IS_POSTER else ""
 plt.savefig(f"{path}/{fname}.pdf")

@@ -1,33 +1,38 @@
-import torch
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as st
-import matplotlib.pyplot as plt
+import torch
 
 plt.style.use("bmh")
-import utils.plot as plot_utils
 import argparse
 import os
-import seaborn as sns
-
 # sns.set_palette('colorblind')
 # sns.set_style('whitegrid')
 import pprint
 
+import seaborn as sns
+
 import problems.toy as toy_problems
+import utils.plot as plot_utils
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--expert_prob", type=float, default=0.1)
-parser.add_argument("--layout", default="aabi", choices=["aabi", "neurips"])
+parser.add_argument("--expert-prob", type=float, default=0.1)
+parser.add_argument("--layout", default="aabi", choices=["aabi", "poster"])
 parser.add_argument(
     "--al_acqf",
     default="active_bald",
     choices=["active_bald", "active_large_diff", "active_small_diff"],
 )
-parser.add_argument("--no_legend", default=False, action="store_true")
+parser.add_argument("--no-legend", default=False, action="store_true")
 args = parser.parse_args()
 
 if args.layout == "aabi":
     args.layout = "jmlr"
+
+if args.layout == "poster":
+    args.layout = "poster-portrait"
+
+IS_POSTER = "poster" in args.layout
 
 PROBLEMS = ["ackley10", "levy10", "rastrigin10", "hartmann6"]
 PROBLEM2TITLE = {
@@ -139,19 +144,20 @@ for i, (problem, ax) in enumerate(zip(PROBLEMS, axs.flatten())):
     ax.set_xlim(0, 250)
 
     # handles, labels = ax.get_legend_handles_labels()
-    if i == 0 and not args.no_legend:
-        ax.legend(loc="best", title="Methods")
+    if i == 1 and not args.no_legend:
+        ax.legend(loc="best", title="Methods" if not IS_POSTER else None)
 
 # fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0, 1.065, 1, 0.005), mode='expand', ncols=8)
 
 # Save results
-if args.layout == "neurips":
-    path = f"../paper/figs"
+if IS_POSTER:
+    path = "../poster/figs"
 else:
-    path = f"../paper/aabi/figs_aabi"
+    path = "../paper/figs_aabi"
 
 if not os.path.exists(path):
     os.makedirs(path)
 
 fname = f"toy_bo_prob{args.expert_prob}_{args.al_acqf}"
+fname += "_poster" if IS_POSTER else ""
 plt.savefig(f"{path}/{fname}.pdf")
