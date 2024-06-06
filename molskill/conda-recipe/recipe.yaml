@@ -1,0 +1,41 @@
+context: {}
+package:
+  name: molskill
+  version: '1.2'
+
+source:
+  path: ../
+
+build:
+  number: 4
+  script: python -m pip install .
+
+requirements:
+  host:
+    - python
+    - pip
+  
+  run:
+    - python
+    - pip
+    - numpy >=1.23.1
+    - pandas >=1.4.2
+    - scikit-learn >=1.0.1
+    - scipy >=1.8.1
+    - tqdm >=4.64.0
+    - pytorch >=1.11
+    - sel(linux64): cudatoolkit >=11.3
+    - rdkit >=2022.03.3
+    - pytorch-lightning =1.6.3
+  
+
+about:
+  home: https://github.com/microsoft/molskill
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - josejimenezluna
+

@@ -1,0 +1,14 @@
+{
+    "include": ["molskill", "train.py", "score.py"],
+    "strictParameterNoneValue": false,
+    "reportGeneralTypeIssues":"warning",
+    "reportUnusedVariable": true,
+    "reportUnknownParameterType": "warning",
+    "reportInvalidTypeVarUse": true,
+    "reportOptionalSubscript": "warning",
+    "reportMissingImports": true,
+    "reportUnboundVariable": true,
+    "reportOptionalMemberAccess":"warning",
+    "reportOptionalIterable":"warning",
+  }
+  

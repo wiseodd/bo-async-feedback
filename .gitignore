@@ -1,2 +1,13 @@
-paper/
 .DS_Store
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+wandb/
+laplace_models/
+
+*.out
+
+cache/
+
+lightning_logs/

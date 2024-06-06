@@ -1,6 +1,6 @@
 [submodule "code/synthetic_accessibility_project"]
-	path = code/synthetic_accessibility_project
+	path = synthetic_accessibility_project
 	url = git@github.com:wiseodd/synthetic_accessibility_project.git
 [submodule "code/molskill"]
-	path = code/molskill
+	path = molskill
 	url = git@github.com:wiseodd/molskill.git
