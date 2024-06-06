@@ -1,9 +1,3 @@
-[submodule "paper"]
-	path = paper
-	url = https://git.overleaf.com/65c69e0977ac316bc29edf15
-[submodule "poster"]
-	path = poster
-	url = https://git.overleaf.com/665f84f05dee773247d1ab91
 [submodule "molskill"]
 	path = molskill
 	url = git@github.com:microsoft/molskill.git
