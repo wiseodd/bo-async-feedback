@@ -11,3 +11,7 @@ laplace_models/
 cache/
 
 lightning_logs/
+paper/
+slides/
+poster/
+
