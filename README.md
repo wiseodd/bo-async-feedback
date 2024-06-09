@@ -6,7 +6,8 @@ Code to reproduce the paper:
 @inproceedings{kristiadi2024asyncBO,
   title={How Useful is Intermittent, Asynchronous Expert Feedback for {B}ayesian Optimization?},
   author={Kristiadi, Agustinus and Strieth-Kalthoff, Felix and Subramanian, Sriram Ganapathi and Fortuin, Vincent and Poupart, Pascal and Pleiss, Geoff},
-  booktitle={AABI Non Archival Track}
+  booktitle={AABI Non Archival Track},
+  year={2024}
 }
 ```
 
