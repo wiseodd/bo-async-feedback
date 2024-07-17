@@ -1,3 +1,4 @@
+from __future__ import annotations
 import argparse
 import os
 import sys
@@ -13,8 +14,11 @@ from laplace_bayesopt.acqf import ThompsonSampling
 from laplace_bayesopt.botorch import LaplaceBoTorch
 
 import problems.chem as chem_probs
-from models.acqf import (BALDForRewardModel, ThompsonSamplingRewardDiff,
-                         ThompsonSamplingWithExpertPref)
+from models.acqf import (
+    BALDForRewardModel,
+    ThompsonSamplingRewardDiff,
+    ThompsonSamplingWithExpertPref,
+)
 from models.reward import RewardModel
 from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch

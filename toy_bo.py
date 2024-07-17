@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import torch
 import tqdm
@@ -7,15 +9,15 @@ from botorch.acquisition.analytic import ExpectedImprovement
 
 from laplace.curvature import CurvlinopsGGN, AsdlGGN
 from laplace_bayesopt.botorch import LaplaceBoTorch
-from laplace_bayesopt.acqf import ThompsonSampling
+from laplace_bayesopt.acqf import IndependentThompsonSampling
 
 import problems.toy as toy_problems
 from models.surrogate import MLLGP, MLP
 from models.surrogate_pref import PrefLaplaceBoTorch
 from models.reward import RewardModel
 from models.acqf import (
-    ThompsonSamplingRewardDiff,
-    ThompsonSamplingWithExpertPref,
+    IndependentThompsonSamplingRewardDiff,
+    IndependentThompsonSamplingWithExpertPref,
     BALDForRewardModel,
 )
 from utils import helpers
@@ -155,13 +157,15 @@ pbar.set_description(f"[Best f(x) = {best_y:.3f}]")
 for i in pbar:
     if not args.with_expert:
         if args.acqf == "ts":
-            acqf = ThompsonSampling(model, maximize=problem.is_maximize).to(args.device)
+            acqf = IndependentThompsonSampling(model, maximize=problem.is_maximize).to(
+                args.device
+            )
         else:
             acqf = ExpectedImprovement(
                 model, best_f=best_y, maximize=problem.is_maximize
             ).to(args.device)
     else:
-        acqf = ThompsonSamplingWithExpertPref(
+        acqf = IndependentThompsonSamplingWithExpertPref(
             model=model, model_pref=model_pref, maximize=False, gamma=args.expert_gamma
         ).to(args.device)
 
@@ -220,7 +224,7 @@ for i in pbar:
                         args.acqf_pref == "active_large_diff"
                         or args.acqf_pref == "active_small_diff"
                     ):
-                        acqf = ThompsonSamplingRewardDiff(model_pref)
+                        acqf = IndependentThompsonSamplingRewardDiff(model_pref)
 
                     acq_vals = acqf(rand_train_pref)
                     acq_vals *= -1 if args.acqf_pref == "active_small_diff" else 1

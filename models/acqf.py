@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 import torch
-import numpy as np
 
 from botorch.acquisition import AnalyticAcquisitionFunction
-from botorch.models.model import Model, ModelList
+from botorch.models.model import Model
 
 from collections import UserDict
-from typing import Optional, List
 
 
-class ThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
+class IndependentThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
     """
     Scalarized Thompson sampling acquisition function with expert preferences.
+    Note that we sample f(x) independently for cost-efficiency, unlike the standard
+    Thompson sampling.
 
     Parameters:
     -----------
@@ -77,13 +79,13 @@ class ThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
         return f_sample + self.gamma * pref_sample
 
 
-class ThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
+class IndependentThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
     """
     Thompson sampling acquisition function for reward modeling.
     Given a pair `x0` and `x1`, compute the distance `|r_s(x0) - r_s(x1)|^2`
     under a Thompson sample `r_s` of `p(r | D)`. The intuition is that
     if `r_s(x0)` and `r_s(x1)` are very different, then they provide a lot of
-    signal about the preference.
+    signal about the preference. We sample `f(x)` independently for efficiency.
 
     Parameters:
     -----------

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import matplotlib as mpl
 import matplotlib.font_manager as font_manager
 

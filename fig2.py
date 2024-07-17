@@ -1,17 +1,14 @@
+from __future__ import annotations
 import torch
 import numpy as np
-import scipy.stats as st
 import matplotlib.pyplot as plt
 
 plt.style.use("bmh")
 import utils.plot as plot_utils
-import argparse
 import os
-import seaborn as sns
 
 # sns.set_palette('colorblind')
 # sns.set_style('whitegrid')
-import pprint
 
 import problems.toy as toy_problems
 from models.reward import ToyRewardModel
@@ -48,9 +45,9 @@ with torch.no_grad():
     axs[1].contourf(X, Y, -R.reshape(n, n))  # Negative reward since f is min problem
 
 # Save results
-path = f"../paper/figs"
+path = "../paper/figs"
 if not os.path.exists(path):
     os.makedirs(path)
 
-fname = f"fig2"
+fname = "fig2"
 plt.savefig(f"{path}/{fname}.pdf")

@@ -1,10 +1,10 @@
+from __future__ import annotations
 import torch
 from torch import nn
 from collections import UserDict
 
 
 class RewardModel(nn.Module):
-
     def __init__(self, dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -45,7 +45,6 @@ class RewardModel(nn.Module):
 
 
 class RewardModelWithOutput(nn.Module):
-
     def __init__(self, dim):
         super().__init__()
         self.net = nn.Sequential(

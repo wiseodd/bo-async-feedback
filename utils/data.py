@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import torch.utils.data as data_utils
 from collections import UserDict
