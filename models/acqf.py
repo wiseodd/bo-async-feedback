@@ -26,9 +26,8 @@ class IndependentThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
     maximize: bool, default = True
         Whether to maximize the acqf
 
-    random_state: int, default = 123
-        The random state of the sampling f_s ~ p(f | D). This is to ensure that for any given x,
-        the sample from p(f(x) | D) comes from the same sample posterior sample f_s ~ p(f | D).
+    random_state: int or None, default = None
+        If set, then the stochasticity is only within batch.
     """
 
     def __init__(
@@ -37,7 +36,7 @@ class IndependentThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
         model_pref: Model,
         gamma: float = 0,
         maximize: bool = True,
-        random_state: int = 123,
+        random_state: int | None = None,
     ) -> None:
         super().__init__(model)
         self.model_pref = model_pref
@@ -64,9 +63,12 @@ class IndependentThompsonSamplingWithExpertPref(AnalyticAcquisitionFunction):
         if len(std.shape) == 0:
             std = std.unsqueeze(0)
 
-        # Thompson sample; deterministic via the random state
-        generator = torch.Generator(device=x.device).manual_seed(self.random_state)
-        eps = torch.randn(*std.shape, device=x.device, generator=generator)
+        if self.random_state is not None:
+            generator = torch.Generator(device=x.device).manual_seed(self.random_state)
+        else:
+            generator = None
+
+        eps = torch.randn(*mean.shape, device=x.device, generator=generator)
         f_sample = mean + std * eps
         f_sample *= 1 if self.maximize else -1
 
@@ -91,9 +93,8 @@ class IndependentThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
     -----------
     model_pref: botorch.models.model.Model
 
-    random_state: int, default = 123
-        The random state of the sampling r_s ~ p(r | D). This is to ensure that for any given x,
-        the sample from p(r(x) | D) comes from the same sample posterior sample r_s ~ p(r | D).
+    random_state: int or None, default = None
+        If set, then the stochasticity is only within batch.
     """
 
     def __init__(self, model_pref: Model, random_state: int = 123) -> None:
@@ -132,9 +133,12 @@ class IndependentThompsonSamplingRewardDiff(AnalyticAcquisitionFunction):
         if len(std1.shape) == 0:
             std1 = std1.unsqueeze(0)
 
-        # Thompson sample; deterministic via the random state
-        generator = torch.Generator(device=x0.device).manual_seed(self.random_state)
-        eps = torch.randn(*std0.shape, device=x0.device, generator=generator)
+        if self.random_state is not None:
+            generator = torch.Generator(device=x0.device).manual_seed(self.random_state)
+        else:
+            generator = None
+
+        eps = torch.randn(*mean0.shape, device=x0.device, generator=generator)
         # Each (n,)
         r_sample0 = mean0 + std0 * eps
         r_sample1 = mean1 + std1 * eps
