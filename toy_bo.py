@@ -143,8 +143,8 @@ if args.with_expert:
 print()
 print(
     f"Problem: {args.problem}, method: {args.method}, with expert: {args.with_expert}, "
-    + "gamma: {args.expert_gamma}, prob: {args.expert_prob}, "
-    + "acqf_pref: {args.acqf_pref}, randseed: {args.randseed}"
+    + f"gamma: {args.expert_gamma}, prob: {args.expert_prob}, "
+    + f"acqf_pref: {args.acqf_pref}, randseed: {args.randseed}"
 )
 print(
     "----------------------------------------------------------------------------------"
